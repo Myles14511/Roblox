@@ -1,4 +1,4 @@
--- LocalScript to simulate flying on mobile (with UI button to toggle)
+-- LocalScript to simulate flying on mobile with UI button
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoid = character:WaitForChild("Humanoid")
@@ -10,7 +10,6 @@ local maxHeight = 200  -- Maximum height the player can fly
 local minHeight = 10   -- Minimum height (keep from going too low)
 local bodyVelocity = nil
 local bodyGyro = nil
-local flightHeight = 10  -- Height above the ground for flying
 
 -- Create the UI button for mobile
 local screenGui = Instance.new("ScreenGui")
@@ -65,10 +64,9 @@ local function updateFlying()
         -- Capture movement via touch (you can make this more complex if needed)
         local direction = Vector3.new(0, 0, 0)
 
-        -- Forward/Backward movement (using simulated touch controls)
+        -- For mobile, handle simple forward/backward and left/right using touch input
         if game:GetService("UserInputService"):IsTouching(Enum.UserInputType.Touch) then
-            -- Here you can set up touch detection for movement
-            -- For simplicity, I'm using a fixed direction (can improve with custom touch controls)
+            -- You can extend this with custom controls
             direction = humanoidRootPart.CFrame.LookVector
         end
 
@@ -79,7 +77,7 @@ local function updateFlying()
             humanoidRootPart.CFrame = humanoidRootPart.CFrame + Vector3.new(0, 5, 0)  -- Raise the player
         end
 
-        -- Apply the velocity
+        -- Apply the velocity for controlled flight
         bodyVelocity.Velocity = direction * speed
         wait(0.1)
     end
