@@ -1,0 +1,68 @@
+-- LocalScript to simulate flying (for testing purposes)
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+
+local flying = false
+local speed = 50  -- How fast the player flies
+local maxHeight = 200  -- Max height (above ground level) the player can fly
+
+-- Toggle flying with the "F" key
+local function toggleFlying()
+    flying = not flying
+    if flying then
+        humanoid.PlatformStand = true  -- Disable normal humanoid controls
+        humanoid:ChangeState(Enum.HumanoidStateType.Physics)
+    else
+        humanoid.PlatformStand = false
+        humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
+    end
+end
+
+-- Fly with WASD keys and Space to go up
+local function fly()
+    while flying do
+        local direction = Vector3.new(0, 0, 0)
+        
+        if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.W) then
+            direction = direction + character.HumanoidRootPart.CFrame.LookVector
+        end
+        if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.S) then
+            direction = direction - character.HumanoidRootPart.CFrame.LookVector
+        end
+        if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.A) then
+            direction = direction - character.HumanoidRootPart.CFrame.RightVector
+        end
+        if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.D) then
+            direction = direction + character.HumanoidRootPart.CFrame.RightVector
+        end
+        if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.Space) then
+            direction = direction + Vector3.new(0, 1, 0)  -- Upward
+        end
+        if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.LeftControl) then
+            direction = direction - Vector3.new(0, 1, 0)  -- Downward
+        end
+
+        -- Make sure the player does not fly too high
+        if character.HumanoidRootPart.Position.Y > maxHeight then
+            character:SetPrimaryPartCFrame(character.HumanoidRootPart.CFrame - Vector3.new(0, 5, 0))
+        end
+
+        character.HumanoidRootPart.Velocity = direction * speed
+        wait(0.1)
+    end
+end
+
+-- Listen for key press to start flying
+game:GetService("UserInputService").InputBegan:Connect(function(input, gameProcessed)
+    if not gameProcessed then
+        if input.UserInputType == Enum.UserInputType.Keyboard then
+            if input.KeyCode == Enum.KeyCode.F then
+                toggleFlying()
+                if flying then
+                    fly()
+                end
+            end
+        end
+    end
+end)
