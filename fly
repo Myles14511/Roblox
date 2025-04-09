@@ -1,67 +1,121 @@
--- Fly Exploit Test Script (for Anti-Cheat Testing)
+-- Realistic Exploit-style Script for Testing Anti-Cheats
 
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoid = character:WaitForChild("Humanoid")
 local hrp = character:WaitForChild("HumanoidRootPart")
+local userInputService = game:GetService("UserInputService")
+local runService = game:GetService("RunService")
 
--- Create GUI
-local gui = Instance.new("ScreenGui")
-gui.Name = "TestFlightGUI"
-gui.ResetOnSpawn = false
-pcall(function()
-	gui.Parent = game.CoreGui
+-- UI Setup
+local screenGui = Instance.new("ScreenGui", game.CoreGui)
+screenGui.Name = "ExploitCheatGui"
+screenGui.ResetOnSpawn = false
+
+local toggleFlyButton = Instance.new("TextButton", screenGui)
+toggleFlyButton.Size = UDim2.new(0, 200, 0, 50)
+toggleFlyButton.Position = UDim2.new(0, 10, 0.85, 0)
+toggleFlyButton.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+toggleFlyButton.TextColor3 = Color3.new(1, 1, 1)
+toggleFlyButton.Text = "Toggle Fly"
+toggleFlyButton.Font = Enum.Font.SourceSansBold
+toggleFlyButton.TextSize = 18
+
+local toggleSpeedButton = Instance.new("TextButton", screenGui)
+toggleSpeedButton.Size = UDim2.new(0, 200, 0, 50)
+toggleSpeedButton.Position = UDim2.new(0, 10, 0.8, 0)
+toggleSpeedButton.BackgroundColor3 = Color3.fromRGB(255, 165, 0)
+toggleSpeedButton.TextColor3 = Color3.new(1, 1, 1)
+toggleSpeedButton.Text = "Toggle Speed Hack"
+toggleSpeedButton.Font = Enum.Font.SourceSansBold
+toggleSpeedButton.TextSize = 18
+
+local toggleNoClipButton = Instance.new("TextButton", screenGui)
+toggleNoClipButton.Size = UDim2.new(0, 200, 0, 50)
+toggleNoClipButton.Position = UDim2.new(0, 10, 0.75, 0)
+toggleNoClipButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+toggleNoClipButton.TextColor3 = Color3.new(1, 1, 1)
+toggleNoClipButton.Text = "Toggle No-Clip"
+toggleNoClipButton.Font = Enum.Font.SourceSansBold
+toggleNoClipButton.TextSize = 18
+
+-- Cheat Variables
+local flying = false
+local noclip = false
+local speedHackEnabled = false
+local speedMultiplier = 3  -- Speed multiplier for walking speed
+local flightSpeed = 100  -- Flight speed
+
+-- Flight Mode
+local bodyVelocity, bodyGyro
+
+-- Toggle Fly
+toggleFlyButton.MouseButton1Click:Connect(function()
+    flying = not flying
+    if flying then
+        humanoid.PlatformStand = true
+        bodyVelocity = Instance.new("BodyVelocity")
+        bodyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+        bodyVelocity.Velocity = Vector3.zero
+        bodyVelocity.Parent = hrp
+
+        bodyGyro = Instance.new("BodyGyro")
+        bodyGyro.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
+        bodyGyro.CFrame = hrp.CFrame
+        bodyGyro.Parent = hrp
+
+        runService.Heartbeat:Connect(function()
+            if flying then
+                local direction = hrp.CFrame.LookVector * flightSpeed + Vector3.new(0, 2, 0)
+                bodyVelocity.Velocity = direction
+                bodyGyro.CFrame = hrp.CFrame
+            end
+        end)
+    else
+        humanoid.PlatformStand = false
+        if bodyVelocity then bodyVelocity:Destroy() end
+        if bodyGyro then bodyGyro:Destroy() end
+    end
 end)
 
-local button = Instance.new("TextButton")
-button.Size = UDim2.new(0, 140, 0, 40)
-button.Position = UDim2.new(0, 10, 0.8, 0)
-button.Text = "Toggle Fly"
-button.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
-button.TextColor3 = Color3.new(1, 1, 1)
-button.Font = Enum.Font.SourceSansBold
-button.TextSize = 20
-button.Parent = gui
+-- Speed Hack
+toggleSpeedButton.MouseButton1Click:Connect(function()
+    speedHackEnabled = not speedHackEnabled
+    if speedHackEnabled then
+        humanoid.WalkSpeed = humanoid.WalkSpeed * speedMultiplier
+    else
+        humanoid.WalkSpeed = humanoid.WalkSpeed / speedMultiplier
+    end
+end)
 
--- Flight Logic
-local flying = false
-local bv, bg
-
-local function startFlying()
-	humanoid.PlatformStand = true
-
-	bv = Instance.new("BodyVelocity")
-	bv.Velocity = Vector3.zero
-	bv.MaxForce = Vector3.new(1e5, 1e5, 1e5)
-	bv.Parent = hrp
-
-	bg = Instance.new("BodyGyro")
-	bg.CFrame = hrp.CFrame
-	bg.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
-	bg.Parent = hrp
-
-	-- Basic flight loop
-	task.spawn(function()
-		while flying and bv and bg do
-			bv.Velocity = hrp.CFrame.LookVector * 50 + Vector3.new(0, 2, 0)
-			bg.CFrame = hrp.CFrame
-			task.wait()
-		end
-	end)
-end
-
-local function stopFlying()
-	humanoid.PlatformStand = false
-	if bv then bv:Destroy() end
-	if bg then bg:Destroy() end
-end
-
--- Toggle flying with button
-button.MouseButton1Click:Connect(function()
-	flying = not flying
-	if flying then
-		startFlying()
-	else
-		stopFlying()
-	end
+-- No-Clip Mode
+toggleNoClipButton.MouseButton1Click:Connect(function()
+    noclip = not noclip
+    if noclip then
+        humanoid:ChangeState(Enum.HumanoidStateType.Physics)
+        runService.Heartbeat:Connect(function()
+            if noclip then
+                hrp.CanCollide = false
+                for _, part in ipairs(character:GetChildren()) do
+                    if part:IsA("BasePart") then
+                        part.CanCollide = false
+                    end
+                end
+            else
+                hrp.CanCollide = true
+                for _, part in ipairs(character:GetChildren()) do
+                    if part:IsA("BasePart") then
+                        part.CanCollide = true
+                    end
+                end
+            end
+        end)
+    else
+        hrp.CanCollide = true
+        for _, part in ipairs(character:GetChildren()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = true
+            end
+        end
+    end
 end)
