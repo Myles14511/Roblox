@@ -9,7 +9,7 @@ local function createUI()
     -- Create a dropdown menu for selecting a target player
     local targetPlayerDropdown = Instance.new("TextButton")
     targetPlayerDropdown.Size = UDim2.new(0, 200, 0, 50)
-    targetPlayerDropdown.Position = UDim2.new(0, 10, 0, 50)  -- Positioning on the left side
+    targetPlayerDropdown.Position = UDim2.new(0, 10, 0, 50)  -- Positioning on the left side (fixed)
     targetPlayerDropdown.Text = "Select Target Player"
     targetPlayerDropdown.Parent = screenGui
 
@@ -53,7 +53,7 @@ local function createUI()
     -- Button to make the selected player explode (and kill them)
     local explodeButton = Instance.new("TextButton")
     explodeButton.Size = UDim2.new(0, 200, 0, 50)
-    explodeButton.Position = UDim2.new(0, 10, 0, 300)  -- Positioning on the left side
+    explodeButton.Position = UDim2.new(0, 10, 0, 350)  -- Positioning on the left side (fixed)
     explodeButton.Text = "Explode Selected Player"
     explodeButton.Parent = screenGui
 
