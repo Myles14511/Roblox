@@ -41,10 +41,12 @@ local function createUI()
 
     -- Wait for the player to select a target player (from the list)
     targetPlayerDropdown.MouseButton1Click:Connect(function()
+        -- This section might need to be revised to handle choosing the correct player
         local playersList = game.Players:GetPlayers()
         for _, p in pairs(playersList) do
             if p ~= player then
                 targetPlayer = p
+                print("Target player selected: " .. targetPlayer.Name) -- Debugging output
                 break
             end
         end
@@ -60,38 +62,10 @@ local function createUI()
     -- When clicked, it will cause the selected player to explode (and get killed)
     explodeButton.MouseButton1Click:Connect(function()
         if targetPlayer then
+            print("Exploding player: " .. targetPlayer.Name)  -- Debugging output
             makePlayerExplode(targetPlayer)
         else
-            print("Please select a player first.")
-        end
-    end)
-end
-
--- Function to create a meteor (only for your client)
-local function createMeteor(position, targetPosition)
-    local meteor = Instance.new("Part")
-    meteor.Shape = Enum.PartType.Ball
-    meteor.Size = Vector3.new(5, 5, 5)
-    meteor.Position = position
-    meteor.Anchored = false
-    meteor.CanCollide = true
-    meteor.Parent = workspace
-    meteor.Color = Color3.fromRGB(255, 0, 0)  -- Red color
-
-    local bodyVelocity = Instance.new("BodyVelocity")
-    bodyVelocity.MaxForce = Vector3.new(50000, 50000, 50000)
-    bodyVelocity.Velocity = (targetPosition - position).unit * 50
-    bodyVelocity.Parent = meteor
-
-    -- Explosion on hit (only visual)
-    meteor.Touched:Connect(function(hit)
-        if hit:IsA("BasePart") then
-            local explosion = Instance.new("Explosion")
-            explosion.Position = meteor.Position
-            explosion.BlastRadius = 10
-            explosion.BlastPressure = 10000
-            explosion.Parent = workspace
-            meteor:Destroy()
+            print("Please select a player first.")  -- Debugging output
         end
     end)
 end
