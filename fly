@@ -1,4 +1,4 @@
--- LocalScript for Exploit Client in Roblox Studio
+-- Cheat Script for Testing (Flight, Speed Hack, No-Clip, and Natural Disasters)
 
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
@@ -6,12 +6,13 @@ local humanoid = character:WaitForChild("Humanoid")
 local hrp = character:WaitForChild("HumanoidRootPart")
 local userInputService = game:GetService("UserInputService")
 local runService = game:GetService("RunService")
-local screenGui = Instance.new("ScreenGui", game.CoreGui)
+local debris = game:GetService("Debris")
 
-screenGui.Name = "ExploitCheatGui"
+-- UI Setup
+local screenGui = Instance.new("ScreenGui", game.CoreGui)
+screenGui.Name = "CheatMenu"
 screenGui.ResetOnSpawn = false
 
--- UI Elements
 local toggleFlyButton = Instance.new("TextButton", screenGui)
 toggleFlyButton.Size = UDim2.new(0, 200, 0, 50)
 toggleFlyButton.Position = UDim2.new(0, 10, 0.85, 0)
@@ -30,15 +31,44 @@ toggleSpeedButton.Text = "Toggle Speed Hack"
 toggleSpeedButton.Font = Enum.Font.SourceSansBold
 toggleSpeedButton.TextSize = 18
 
-local flying = false
-local speedHackEnabled = false
-local speedMultiplier = 2  -- Speed multiplier
-local flightSpeed = 100  -- Flight speed
+local toggleNoClipButton = Instance.new("TextButton", screenGui)
+toggleNoClipButton.Size = UDim2.new(0, 200, 0, 50)
+toggleNoClipButton.Position = UDim2.new(0, 10, 0.75, 0)
+toggleNoClipButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+toggleNoClipButton.TextColor3 = Color3.new(1, 1, 1)
+toggleNoClipButton.Text = "Toggle No-Clip"
+toggleNoClipButton.Font = Enum.Font.SourceSansBold
+toggleNoClipButton.TextSize = 18
 
--- Flight Hack
+local summonMeteorButton = Instance.new("TextButton", screenGui)
+summonMeteorButton.Size = UDim2.new(0, 200, 0, 50)
+summonMeteorButton.Position = UDim2.new(0, 10, 0.7, 0)
+summonMeteorButton.BackgroundColor3 = Color3.fromRGB(255, 69, 0)
+summonMeteorButton.TextColor3 = Color3.new(1, 1, 1)
+summonMeteorButton.Text = "Summon Meteor"
+summonMeteorButton.Font = Enum.Font.SourceSansBold
+summonMeteorButton.TextSize = 18
+
+local summonTsunamiButton = Instance.new("TextButton", screenGui)
+summonTsunamiButton.Size = UDim2.new(0, 200, 0, 50)
+summonTsunamiButton.Position = UDim2.new(0, 10, 0.65, 0)
+summonTsunamiButton.BackgroundColor3 = Color3.fromRGB(0, 0, 255)
+summonTsunamiButton.TextColor3 = Color3.new(1, 1, 1)
+summonTsunamiButton.Text = "Summon Tsunami"
+summonTsunamiButton.Font = Enum.Font.SourceSansBold
+summonTsunamiButton.TextSize = 18
+
+-- Cheat Variables
+local flying = false
+local noclip = false
+local speedHackEnabled = false
+local speedMultiplier = 3  -- Speed multiplier for walking speed
+local flightSpeed = 100  -- Flight speed
+local maxHeight = 200  -- Max height for flying
 local bodyVelocity, bodyGyro
 
-toggleFlyButton.MouseButton1Click:Connect(function()
+-- Flight Mode
+local function toggleFly()
     flying = not flying
     if flying then
         humanoid.PlatformStand = true
@@ -64,14 +94,87 @@ toggleFlyButton.MouseButton1Click:Connect(function()
         if bodyVelocity then bodyVelocity:Destroy() end
         if bodyGyro then bodyGyro:Destroy() end
     end
-end)
+end
 
 -- Speed Hack
-toggleSpeedButton.MouseButton1Click:Connect(function()
+local function toggleSpeedHack()
     speedHackEnabled = not speedHackEnabled
     if speedHackEnabled then
         humanoid.WalkSpeed = humanoid.WalkSpeed * speedMultiplier
     else
         humanoid.WalkSpeed = humanoid.WalkSpeed / speedMultiplier
     end
-end)
+end
+
+-- No-Clip Mode
+local function toggleNoClip()
+    noclip = not noclip
+    if noclip then
+        humanoid:ChangeState(Enum.HumanoidStateType.Physics)
+        runService.Heartbeat:Connect(function()
+            if noclip then
+                hrp.CanCollide = false
+                for _, part in ipairs(character:GetChildren()) do
+                    if part:IsA("BasePart") then
+                        part.CanCollide = false
+                    end
+                end
+            else
+                hrp.CanCollide = true
+                for _, part in ipairs(character:GetChildren()) do
+                    if part:IsA("BasePart") then
+                        part.CanCollide = true
+                    end
+                end
+            end
+        end)
+    else
+        humanoid:ChangeState(Enum.HumanoidStateType.Physics)
+    end
+end
+
+-- Summon Meteor
+local function summonMeteor()
+    local meteor = Instance.new("Part")
+    meteor.Size = Vector3.new(10, 10, 10)
+    meteor.Shape = Enum.PartType.Ball
+    meteor.Position = Vector3.new(math.random(-500, 500), 500, math.random(-500, 500))
+    meteor.Anchored = true
+    meteor.BrickColor = BrickColor.Red()
+    meteor.Parent = game.Workspace
+
+    -- Make it fall down
+    local bodyVelocity = Instance.new("BodyVelocity")
+    bodyVelocity.Velocity = Vector3.new(0, -50, 0)
+    bodyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+    bodyVelocity.Parent = meteor
+
+    -- Cleanup meteor after 10 seconds
+    debris:AddItem(meteor, 10)
+end
+
+-- Summon Tsunami
+local function summonTsunami()
+    local tsunami = Instance.new("Part")
+    tsunami.Size = Vector3.new(100, 50, 100)
+    tsunami.Position = Vector3.new(0, 100, 0)
+    tsunami.Anchored = true
+    tsunami.BrickColor = BrickColor.Blue()
+    tsunami.Parent = game.Workspace
+
+    -- Make it move towards the player
+    local bodyVelocity = Instance.new("BodyVelocity")
+    bodyVelocity.Velocity = Vector3.new(0, -10, 0)
+    bodyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+    bodyVelocity.Parent = tsunami
+
+    -- Cleanup tsunami after 5 seconds
+    debris:AddItem(tsunami, 5)
+end
+
+-- Button connections
+toggleFlyButton.MouseButton1Click:Connect(toggleFly)
+toggleSpeedButton.MouseButton1Click:Connect(toggleSpeedHack)
+toggleNoClipButton.MouseButton1Click:Connect(toggleNoClip)
+summonMeteorButton.MouseButton1Click:Connect(summonMeteor)
+summonTsunamiButton.MouseButton1Click:Connect(summonTsunami)
