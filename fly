@@ -1,9 +1,74 @@
--- Server-side script: This will be the script that executes the cheat effects
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
 
--- Function to create a meteor projectile
+-- UI Setup (creating buttons to trigger cheats)
+local function createUI()
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Parent = player:WaitForChild("PlayerGui")
+
+    -- Create a dropdown menu for selecting a target player
+    local targetPlayerDropdown = Instance.new("TextButton")
+    targetPlayerDropdown.Size = UDim2.new(0, 200, 0, 50)
+    targetPlayerDropdown.Position = UDim2.new(0.5, -100, 0.9, 0)
+    targetPlayerDropdown.Text = "Select Target Player"
+    targetPlayerDropdown.Parent = screenGui
+
+    -- Function to create a dropdown of players to choose from
+    local function updatePlayerList()
+        local playerList = ""
+        for _, p in pairs(game.Players:GetPlayers()) do
+            if p ~= player then
+                playerList = playerList .. p.Name .. "\n"
+            end
+        end
+        -- Create a new TextLabel with the list of players to choose from
+        local playerListLabel = Instance.new("TextLabel")
+        playerListLabel.Size = UDim2.new(0, 200, 0, 200)
+        playerListLabel.Position = UDim2.new(0.5, -100, 0.8, 0)
+        playerListLabel.Text = playerList
+        playerListLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+        playerListLabel.TextScaled = true
+        playerListLabel.Parent = screenGui
+
+        return playerListLabel
+    end
+
+    -- Create a list of other players
+    local playerListLabel = updatePlayerList()
+
+    -- Pick a player and trigger cheat effects on them
+    local targetPlayer = nil
+
+    -- Wait for the player to select a target player (from the list)
+    targetPlayerDropdown.MouseButton1Click:Connect(function()
+        local playersList = game.Players:GetPlayers()
+        for _, p in pairs(playersList) do
+            if p ~= player then
+                targetPlayer = p
+                break
+            end
+        end
+    end)
+
+    -- Button to make the selected player explode (and kill them)
+    local explodeButton = Instance.new("TextButton")
+    explodeButton.Size = UDim2.new(0, 200, 0, 50)
+    explodeButton.Position = UDim2.new(0.5, -100, 0.8, 0)
+    explodeButton.Text = "Explode Selected Player"
+    explodeButton.Parent = screenGui
+
+    -- When clicked, it will cause the selected player to explode (and get killed)
+    explodeButton.MouseButton1Click:Connect(function()
+        if targetPlayer then
+            makePlayerExplode(targetPlayer)
+        else
+            print("Please select a player first.")
+        end
+    end)
+
+end
+
+-- Function to create a meteor (only for your client)
 local function createMeteor(position, targetPosition)
     local meteor = Instance.new("Part")
     meteor.Shape = Enum.PartType.Ball
@@ -16,91 +81,39 @@ local function createMeteor(position, targetPosition)
 
     local bodyVelocity = Instance.new("BodyVelocity")
     bodyVelocity.MaxForce = Vector3.new(50000, 50000, 50000)
-    bodyVelocity.Velocity = (targetPosition - position).unit * 50  -- Direct the meteor towards the target
+    bodyVelocity.Velocity = (targetPosition - position).unit * 50
     bodyVelocity.Parent = meteor
 
-    -- Damage or destroy parts upon impact
+    -- Explosion on hit (only visual)
     meteor.Touched:Connect(function(hit)
         if hit:IsA("BasePart") then
-            -- Create explosion on impact
             local explosion = Instance.new("Explosion")
             explosion.Position = meteor.Position
             explosion.BlastRadius = 10
             explosion.BlastPressure = 10000
             explosion.Parent = workspace
-
-            -- Deal damage to players
-            if hit.Parent and hit.Parent:FindFirstChild("Humanoid") then
-                local humanoid = hit.Parent:FindFirstChild("Humanoid")
-                if humanoid then
-                    humanoid:TakeDamage(50)  -- Adjust damage as needed
-                end
-            end
-
-            -- Destroy meteor after impact
             meteor:Destroy()
         end
     end)
 end
 
--- Flight Mode (makes you fly by enabling BodyVelocity)
-local function startFlying(character)
-    local hrp = character:WaitForChild("HumanoidRootPart")
-    local bodyVelocity = Instance.new("BodyVelocity")
-    bodyVelocity.MaxForce = Vector3.new(100000, 100000, 100000)
-    bodyVelocity.Velocity = Vector3.zero
-    bodyVelocity.Parent = hrp
+-- Function to make another player explode (only affects your client)
+local function makePlayerExplode(targetPlayer)
+    local character = targetPlayer.Character
+    if character then
+        -- Create explosion at their position
+        local explosion = Instance.new("Explosion")
+        explosion.Position = character.HumanoidRootPart.Position
+        explosion.BlastRadius = 10
+        explosion.BlastPressure = 10000
+        explosion.Parent = workspace
+
+        -- Set health to 0 to simulate explosion
+        if character:FindFirstChild("Humanoid") then
+            local humanoid = character.Humanoid
+            humanoid.Health = 0  -- This will "explode" the player
+        end
+    end
 end
 
--- Speed Hack (change WalkSpeed for all players)
-local function applySpeedHack(character, speedMultiplier)
-    local humanoid = character:WaitForChild("Humanoid")
-    humanoid.WalkSpeed = humanoid.WalkSpeed * speedMultiplier
-end
-
--- Function to handle meteor throwing
-local function onPlayerThrowMeteor(player)
-    local character = player.Character
-    if not character then return end
-    local hrp = character:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-
-    -- The target is where the player is pointing (camera direction)
-    local camera = workspace.CurrentCamera
-    local direction = camera.CFrame.LookVector
-    local targetPosition = hrp.Position + direction * 100  -- You can adjust the distance
-
-    -- Create and throw the meteor
-    createMeteor(hrp.Position, targetPosition)
-end
-
--- UI Setup (create a button to trigger meteor)
-local function createUI(player)
-    local screenGui = Instance.new("ScreenGui")
-    screenGui.Parent = player:WaitForChild("PlayerGui")
-
-    local button = Instance.new("TextButton")
-    button.Size = UDim2.new(0, 200, 0, 50)
-    button.Position = UDim2.new(0.5, -100, 0.9, 0)
-    button.Text = "Throw Meteor"
-    button.Parent = screenGui
-
-    -- Bind meteor throw action to button click
-    button.MouseButton1Click:Connect(function()
-        onPlayerThrowMeteor(player)
-    end)
-end
-
--- When a new player joins the game, give them the ability to trigger cheats
-Players.PlayerAdded:Connect(function(player)
-    -- Create UI for the player to interact with
-    createUI(player)
-
-    -- Give the player the ability to fly
-    startFlying(player.Character)
-
-    -- Apply speed hack to all players
-    applySpeedHack(player.Character, 2)  -- Double speed, adjust multiplier as needed
-
-    -- You can add other cheat effects here (like summoning meteors)
-end)
+createUI()
