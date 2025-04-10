@@ -1,4 +1,4 @@
--- Realistic Exploit-style Script for Testing Anti-Cheats
+-- LocalScript for Exploit Client in Roblox Studio
 
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
@@ -6,12 +6,12 @@ local humanoid = character:WaitForChild("Humanoid")
 local hrp = character:WaitForChild("HumanoidRootPart")
 local userInputService = game:GetService("UserInputService")
 local runService = game:GetService("RunService")
-
--- UI Setup
 local screenGui = Instance.new("ScreenGui", game.CoreGui)
+
 screenGui.Name = "ExploitCheatGui"
 screenGui.ResetOnSpawn = false
 
+-- UI Elements
 local toggleFlyButton = Instance.new("TextButton", screenGui)
 toggleFlyButton.Size = UDim2.new(0, 200, 0, 50)
 toggleFlyButton.Position = UDim2.new(0, 10, 0.85, 0)
@@ -30,26 +30,14 @@ toggleSpeedButton.Text = "Toggle Speed Hack"
 toggleSpeedButton.Font = Enum.Font.SourceSansBold
 toggleSpeedButton.TextSize = 18
 
-local toggleNoClipButton = Instance.new("TextButton", screenGui)
-toggleNoClipButton.Size = UDim2.new(0, 200, 0, 50)
-toggleNoClipButton.Position = UDim2.new(0, 10, 0.75, 0)
-toggleNoClipButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-toggleNoClipButton.TextColor3 = Color3.new(1, 1, 1)
-toggleNoClipButton.Text = "Toggle No-Clip"
-toggleNoClipButton.Font = Enum.Font.SourceSansBold
-toggleNoClipButton.TextSize = 18
-
--- Cheat Variables
 local flying = false
-local noclip = false
 local speedHackEnabled = false
-local speedMultiplier = 3  -- Speed multiplier for walking speed
+local speedMultiplier = 2  -- Speed multiplier
 local flightSpeed = 100  -- Flight speed
 
--- Flight Mode
+-- Flight Hack
 local bodyVelocity, bodyGyro
 
--- Toggle Fly
 toggleFlyButton.MouseButton1Click:Connect(function()
     flying = not flying
     if flying then
@@ -85,37 +73,5 @@ toggleSpeedButton.MouseButton1Click:Connect(function()
         humanoid.WalkSpeed = humanoid.WalkSpeed * speedMultiplier
     else
         humanoid.WalkSpeed = humanoid.WalkSpeed / speedMultiplier
-    end
-end)
-
--- No-Clip Mode
-toggleNoClipButton.MouseButton1Click:Connect(function()
-    noclip = not noclip
-    if noclip then
-        humanoid:ChangeState(Enum.HumanoidStateType.Physics)
-        runService.Heartbeat:Connect(function()
-            if noclip then
-                hrp.CanCollide = false
-                for _, part in ipairs(character:GetChildren()) do
-                    if part:IsA("BasePart") then
-                        part.CanCollide = false
-                    end
-                end
-            else
-                hrp.CanCollide = true
-                for _, part in ipairs(character:GetChildren()) do
-                    if part:IsA("BasePart") then
-                        part.CanCollide = true
-                    end
-                end
-            end
-        end)
-    else
-        hrp.CanCollide = true
-        for _, part in ipairs(character:GetChildren()) do
-            if part:IsA("BasePart") then
-                part.CanCollide = true
-            end
-        end
     end
 end)
