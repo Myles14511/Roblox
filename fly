@@ -2,6 +2,7 @@ local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local userInputService = game:GetService("UserInputService")
 local replicatedStorage = game:GetService("ReplicatedStorage")
+local scrollFrame, playerMenu
 
 -- Initialize variables
 local isFlying = false
@@ -22,6 +23,15 @@ menuFrame.Position = UDim2.new(0, 10, 0, 100)
 menuFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 menuFrame.BackgroundTransparency = 0.5
 menuFrame.Parent = screenGui
+
+-- Scrollable Frame Setup
+scrollFrame = Instance.new("ScrollingFrame")
+scrollFrame.Size = UDim2.new(0, 200, 0, 300)
+scrollFrame.Position = UDim2.new(0, 0, 0, 70)
+scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0) -- Initially no items
+scrollFrame.ScrollBarThickness = 12
+scrollFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+scrollFrame.Parent = menuFrame
 
 -- Toggle flight button
 local flightButton = Instance.new("TextButton")
@@ -123,11 +133,54 @@ local function updateSpeed()
     end
 end
 
+-- Function to create a player button in the player menu
+local function createPlayerButton(plr)
+    local playerButton = Instance.new("TextButton")
+    playerButton.Size = UDim2.new(0, 180, 0, 30)
+    playerButton.Text = "Teleport to " .. plr.Name
+    playerButton.BackgroundColor3 = Color3.fromRGB(0, 255, 255)
+    playerButton.Parent = scrollFrame
+    playerButton.MouseButton1Click:Connect(function()
+        targetPlayer = plr
+        print("Target player set to: " .. plr.Name)
+    end)
+end
+
 -- Listen for the buttons to be clicked
 flightButton.MouseButton1Click:Connect(toggleFlight)
 noClipButton.MouseButton1Click:Connect(toggleNoClip)
 tpButton.MouseButton1Click:Connect(teleportToPlayer)
 speedSlider.FocusLost:Connect(updateSpeed)
+
+-- Show player menu only when Teleport button is clicked
+tpButton.MouseButton1Click:Connect(function()
+    -- Clear previous player buttons
+    for _, child in pairs(scrollFrame:GetChildren()) do
+        if child:IsA("TextButton") then
+            child:Destroy()
+        end
+    end
+
+    -- Create a button for each player in the game
+    for _, plr in pairs(game.Players:GetPlayers()) do
+        if plr ~= player then
+            createPlayerButton(plr)
+        end
+    end
+
+    -- Show the scrollFrame
+    scrollFrame.Visible = true
+end)
+
+-- Hide player menu after teleport or other actions
+game.Players.PlayerRemoving:Connect(function(plr)
+    if plr == targetPlayer then
+        scrollFrame.Visible = false
+    end
+end)
+
+-- Set initial visibility to false for scrollFrame
+scrollFrame.Visible = false
 
 -- Function to handle flight controls (speed changes and position adjustments)
 game:GetService("RunService").Heartbeat:Connect(function()
@@ -154,7 +207,7 @@ game.Players.PlayerAdded:Connect(function(plr)
         playerButton.Size = UDim2.new(0, 200, 0, 30)
         playerButton.Text = "Teleport to " .. plr.Name
         playerButton.BackgroundColor3 = Color3.fromRGB(0, 255, 255)
-        playerButton.Parent = menuFrame
+        playerButton.Parent = scrollFrame
         playerButton.MouseButton1Click:Connect(function()
             targetPlayer = plr
             print("Target player set to: " .. plr.Name)
