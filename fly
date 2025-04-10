@@ -1,12 +1,14 @@
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 
+local targetPlayer = nil
+
 -- UI Setup (creating buttons to trigger cheats)
 local function createUI()
     local screenGui = Instance.new("ScreenGui")
     screenGui.Parent = player:WaitForChild("PlayerGui")
 
-    -- Create a dropdown menu for selecting a target player
+    -- Create a button for selecting a target player
     local targetPlayerDropdown = Instance.new("TextButton")
     targetPlayerDropdown.Size = UDim2.new(0, 200, 0, 50)
     targetPlayerDropdown.Position = UDim2.new(0, 10, 0, 50)  -- Positioning on the left side (fixed)
@@ -20,6 +22,12 @@ local function createUI()
     local function updatePlayerList()
         local yPosition = 110  -- Start positioning the buttons below the first button
 
+        -- Remove any old player buttons first (to reset the list)
+        for _, button in pairs(playerButtons) do
+            button:Destroy()
+        end
+
+        -- Create buttons for each player
         for _, p in pairs(game.Players:GetPlayers()) do
             if p ~= player then
                 -- Create a button for each player
@@ -34,6 +42,9 @@ local function createUI()
                     targetPlayer = p
                     print("Selected target player: " .. p.Name)  -- Debugging output
                 end)
+
+                -- Add button to the list of buttons for removal later
+                table.insert(playerButtons, playerButton)
 
                 -- Increment the Y position for the next player button
                 yPosition = yPosition + 40
@@ -73,9 +84,9 @@ local function makePlayerExplode(targetPlayer)
         explosion.BlastPressure = 10000
         explosion.Parent = workspace
 
-        -- Set health to 0 to simulate explosion
-        if character:FindFirstChild("Humanoid") then
-            local humanoid = character.Humanoid
+        -- Ensure the player's health is set to 0 to simulate an instant kill
+        local humanoid = character:FindFirstChild("Humanoid")
+        if humanoid then
             humanoid.Health = 0  -- This will "explode" the player
         end
     end
