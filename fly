@@ -1,192 +1,106 @@
--- Cheat Test Script with Advanced Features for All Players
-local player = game.Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local humanoid = character:WaitForChild("Humanoid")
-local hrp = character:WaitForChild("HumanoidRootPart")
-local userInputService = game:GetService("UserInputService")
-local replicatedStorage = game:GetService("ReplicatedStorage")
-local runService = game:GetService("RunService")
-local workspace = game:GetService("Workspace")
+-- Server-side script: This will be the script that executes the cheat effects
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
--- GUI Setup
-local screenGui = Instance.new("ScreenGui", game.CoreGui)
-screenGui.Name = "CheatTestGui"
-screenGui.ResetOnSpawn = false
-
--- Flight Button
-local toggleFlyButton = Instance.new("TextButton", screenGui)
-toggleFlyButton.Size = UDim2.new(0, 200, 0, 50)
-toggleFlyButton.Position = UDim2.new(0.5, -100, 0.85, 0)
-toggleFlyButton.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
-toggleFlyButton.TextColor3 = Color3.new(1, 1, 1)
-toggleFlyButton.Text = "Toggle Fly"
-toggleFlyButton.Font = Enum.Font.SourceSansBold
-toggleFlyButton.TextSize = 18
-
--- Speed Button
-local toggleSpeedButton = Instance.new("TextButton", screenGui)
-toggleSpeedButton.Size = UDim2.new(0, 200, 0, 50)
-toggleSpeedButton.Position = UDim2.new(0.5, -100, 0.8, 0)
-toggleSpeedButton.BackgroundColor3 = Color3.fromRGB(255, 165, 0)
-toggleSpeedButton.TextColor3 = Color3.new(1, 1, 1)
-toggleSpeedButton.Text = "Toggle Speed Hack"
-toggleSpeedButton.Font = Enum.Font.SourceSansBold
-toggleSpeedButton.TextSize = 18
-
--- Toggleable Menu Visibility
-local menuVisible = true
-local toggleMenuButton = Instance.new("TextButton", screenGui)
-toggleMenuButton.Size = UDim2.new(0, 200, 0, 50)
-toggleMenuButton.Position = UDim2.new(0.5, -100, 0.75, 0)
-toggleMenuButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
-toggleMenuButton.TextColor3 = Color3.new(1, 1, 1)
-toggleMenuButton.Text = "Toggle Menu"
-toggleMenuButton.Font = Enum.Font.SourceSansBold
-toggleMenuButton.TextSize = 18
-
--- Cheat Variables
-local flying = false
-local speedHackEnabled = false
-local speedMultiplier = 3
-local flightSpeed = 100
-local meteorsActive = false
-local tsunamiActive = false
-
--- Flight Mode
-local bodyVelocity, bodyGyro
-
--- Toggle Menu Visibility
-toggleMenuButton.MouseButton1Click:Connect(function()
-    menuVisible = not menuVisible
-    if menuVisible then
-        toggleFlyButton.Visible = true
-        toggleSpeedButton.Visible = true
-    else
-        toggleFlyButton.Visible = false
-        toggleSpeedButton.Visible = false
-    end
-end)
-
--- Flight Toggle
-toggleFlyButton.MouseButton1Click:Connect(function()
-    flying = not flying
-    if flying then
-        humanoid.PlatformStand = true
-        bodyVelocity = Instance.new("BodyVelocity")
-        bodyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
-        bodyVelocity.Velocity = Vector3.zero
-        bodyVelocity.Parent = hrp
-
-        bodyGyro = Instance.new("BodyGyro")
-        bodyGyro.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
-        bodyGyro.CFrame = hrp.CFrame
-        bodyGyro.Parent = hrp
-
-        runService.Heartbeat:Connect(function()
-            if flying then
-                local direction = hrp.CFrame.LookVector * flightSpeed + Vector3.new(0, 2, 0)
-                bodyVelocity.Velocity = direction
-                bodyGyro.CFrame = hrp.CFrame
-            end
-        end)
-    else
-        humanoid.PlatformStand = false
-        if bodyVelocity then bodyVelocity:Destroy() end
-        if bodyGyro then bodyGyro:Destroy() end
-    end
-end)
-
--- Speed Hack Toggle
-toggleSpeedButton.MouseButton1Click:Connect(function()
-    speedHackEnabled = not speedHackEnabled
-    if speedHackEnabled then
-        humanoid.WalkSpeed = humanoid.WalkSpeed * speedMultiplier
-    else
-        humanoid.WalkSpeed = humanoid.WalkSpeed / speedMultiplier
-    end
-end)
-
--- Meteor Summon (Replicated for all players)
-local function summonMeteor()
+-- Function to create a meteor projectile
+local function createMeteor(position, targetPosition)
     local meteor = Instance.new("Part")
-    meteor.Size = Vector3.new(10, 10, 10)
     meteor.Shape = Enum.PartType.Ball
-    meteor.Position = hrp.Position + Vector3.new(0, 100, 0)
-    meteor.BrickColor = BrickColor.Red()
+    meteor.Size = Vector3.new(5, 5, 5)
+    meteor.Position = position
     meteor.Anchored = false
-    meteor.CanCollide = false
+    meteor.CanCollide = true
     meteor.Parent = workspace
+    meteor.Color = Color3.fromRGB(255, 0, 0)  -- Red color
 
     local bodyVelocity = Instance.new("BodyVelocity")
-    bodyVelocity.MaxForce = Vector3.new(100000, 100000, 100000)
-    bodyVelocity.Velocity = Vector3.new(0, -50, 0)
+    bodyVelocity.MaxForce = Vector3.new(50000, 50000, 50000)
+    bodyVelocity.Velocity = (targetPosition - position).unit * 50  -- Direct the meteor towards the target
     bodyVelocity.Parent = meteor
 
-    -- Destroy the meteor after 5 seconds
-    game.Debris:AddItem(meteor, 5)
-end
+    -- Damage or destroy parts upon impact
+    meteor.Touched:Connect(function(hit)
+        if hit:IsA("BasePart") then
+            -- Create explosion on impact
+            local explosion = Instance.new("Explosion")
+            explosion.Position = meteor.Position
+            explosion.BlastRadius = 10
+            explosion.BlastPressure = 10000
+            explosion.Parent = workspace
 
--- Tsunami Summon (Replicated for all players)
-local function summonTsunami()
-    local tsunami = Instance.new("Part")
-    tsunami.Size = Vector3.new(100, 10, 100)
-    tsunami.Position = Vector3.new(hrp.Position.X, 500, hrp.Position.Z)
-    tsunami.Anchored = true
-    tsunami.CanCollide = true
-    tsunami.BrickColor = BrickColor.Blue()
-    tsunami.Parent = workspace
-
-    -- Move the tsunami towards players
-    local direction = (Vector3.new(hrp.Position.X, 500, hrp.Position.Z) - Vector3.new(hrp.Position.X, 0, hrp.Position.Z)).unit
-    tsunami.CFrame = tsunami.CFrame + direction * 1000
-
-    -- Apply damage to players in its path
-    for _, otherPlayer in ipairs(game.Players:GetPlayers()) do
-        if otherPlayer.Character and otherPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            local dist = (otherPlayer.Character.HumanoidRootPart.Position - tsunami.Position).Magnitude
-            if dist < 50 then
-                local humanoid = otherPlayer.Character:FindFirstChild("Humanoid")
+            -- Deal damage to players
+            if hit.Parent and hit.Parent:FindFirstChild("Humanoid") then
+                local humanoid = hit.Parent:FindFirstChild("Humanoid")
                 if humanoid then
-                    humanoid.Health = humanoid.Health - 10 -- Damage players
+                    humanoid:TakeDamage(50)  -- Adjust damage as needed
                 end
             end
-        end
-    end
 
-    -- Destroy the tsunami after 10 seconds
-    game.Debris:AddItem(tsunami, 10)
+            -- Destroy meteor after impact
+            meteor:Destroy()
+        end
+    end)
 end
 
--- Meteor and Tsunami Activation Button
-local summonDisastersButton = Instance.new("TextButton", screenGui)
-summonDisastersButton.Size = UDim2.new(0, 200, 0, 50)
-summonDisastersButton.Position = UDim2.new(0.5, -100, 0.7, 0)
-summonDisastersButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-summonDisastersButton.TextColor3 = Color3.new(1, 1, 1)
-summonDisastersButton.Text = "Summon Disaster"
-summonDisastersButton.Font = Enum.Font.SourceSansBold
-summonDisastersButton.TextSize = 18
+-- Flight Mode (makes you fly by enabling BodyVelocity)
+local function startFlying(character)
+    local hrp = character:WaitForChild("HumanoidRootPart")
+    local bodyVelocity = Instance.new("BodyVelocity")
+    bodyVelocity.MaxForce = Vector3.new(100000, 100000, 100000)
+    bodyVelocity.Velocity = Vector3.zero
+    bodyVelocity.Parent = hrp
+end
 
-summonDisastersButton.MouseButton1Click:Connect(function()
-    if not meteorsActive then
-        meteorsActive = true
-        summonMeteor() -- Summon meteor at the player's position
-    elseif not tsunamiActive then
-        tsunamiActive = true
-        summonTsunami() -- Summon tsunami
-    end
-end)
+-- Speed Hack (change WalkSpeed for all players)
+local function applySpeedHack(character, speedMultiplier)
+    local humanoid = character:WaitForChild("Humanoid")
+    humanoid.WalkSpeed = humanoid.WalkSpeed * speedMultiplier
+end
 
--- Make it so the menu is still toggleable and functional.
-toggleMenuButton.MouseButton1Click:Connect(function()
-    menuVisible = not menuVisible
-    if menuVisible then
-        toggleFlyButton.Visible = true
-        toggleSpeedButton.Visible = true
-        summonDisastersButton.Visible = true
-    else
-        toggleFlyButton.Visible = false
-        toggleSpeedButton.Visible = false
-        summonDisastersButton.Visible = false
-    end
+-- Function to handle meteor throwing
+local function onPlayerThrowMeteor(player)
+    local character = player.Character
+    if not character then return end
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    -- The target is where the player is pointing (camera direction)
+    local camera = workspace.CurrentCamera
+    local direction = camera.CFrame.LookVector
+    local targetPosition = hrp.Position + direction * 100  -- You can adjust the distance
+
+    -- Create and throw the meteor
+    createMeteor(hrp.Position, targetPosition)
+end
+
+-- UI Setup (create a button to trigger meteor)
+local function createUI(player)
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Parent = player:WaitForChild("PlayerGui")
+
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.new(0, 200, 0, 50)
+    button.Position = UDim2.new(0.5, -100, 0.9, 0)
+    button.Text = "Throw Meteor"
+    button.Parent = screenGui
+
+    -- Bind meteor throw action to button click
+    button.MouseButton1Click:Connect(function()
+        onPlayerThrowMeteor(player)
+    end)
+end
+
+-- When a new player joins the game, give them the ability to trigger cheats
+Players.PlayerAdded:Connect(function(player)
+    -- Create UI for the player to interact with
+    createUI(player)
+
+    -- Give the player the ability to fly
+    startFlying(player.Character)
+
+    -- Apply speed hack to all players
+    applySpeedHack(player.Character, 2)  -- Double speed, adjust multiplier as needed
+
+    -- You can add other cheat effects here (like summoning meteors)
 end)
