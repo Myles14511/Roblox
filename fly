@@ -1,174 +1,142 @@
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
-local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
 local humanoid = character:WaitForChild("Humanoid")
-
--- Flight variables
-local flightSpeed = 50
-local isFlying = false
-local flightVelocity = Vector3.new(0, 0, 0)
-
--- Invisibility variable
+local hrp = character:WaitForChild("HumanoidRootPart")
+local flying = false
+local speed = 50  -- Default flight speed
+local walkSpeed = 16  -- Default walking speed
+local height = 10  -- Default height (adjustable during flight)
 local isInvisible = false
+local noClipActive = false
 
--- Create a UI with scrolling list and buttons for cheats
-local function createUI()
-    -- Main UI container
-    local screenGui = Instance.new("ScreenGui")
-    screenGui.Parent = player:WaitForChild("PlayerGui")
+-- Flight and Speed Control
+local function startFlying()
+    if flying then return end
+    flying = true
     
-    -- Frame for UI (Left side of the screen)
-    local mainFrame = Instance.new("Frame")
-    mainFrame.Size = UDim2.new(0, 250, 0, 400)
-    mainFrame.Position = UDim2.new(0, 0, 0.5, -200)
-    mainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    mainFrame.BackgroundTransparency = 0.5
-    mainFrame.Parent = screenGui
+    -- Disable gravity to simulate flying
+    humanoid.PlatformStand = true
+    local bodyVelocity = Instance.new("BodyVelocity")
+    bodyVelocity.MaxForce = Vector3.new(40000, 40000, 40000)
+    bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+    bodyVelocity.Parent = hrp
 
-    -- Scrolling Frame for player list and cheat options
-    local scrollFrame = Instance.new("ScrollingFrame")
-    scrollFrame.Size = UDim2.new(1, 0, 1, 0)
-    scrollFrame.Position = UDim2.new(0, 0, 0, 0)
-    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 500)  -- Make the frame scrollable
-    scrollFrame.ScrollBarThickness = 8
-    scrollFrame.Parent = mainFrame
-
-    -- Layout for the items inside the scrolling frame
-    local layout = Instance.new("UIListLayout")
-    layout.SortOrder = Enum.SortOrder.LayoutOrder
-    layout.Parent = scrollFrame
-
-    -- Add buttons to the scrollable menu
-    local function createButton(name, callback)
-        local button = Instance.new("TextButton")
-        button.Size = UDim2.new(1, 0, 0, 50)
-        button.Text = name
-        button.TextColor3 = Color3.fromRGB(255, 255, 255)
-        button.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-        button.Parent = scrollFrame
-
-        button.MouseButton1Click:Connect(callback)
-    end
-
-    -- Function to make the player fly
-    local function startFlying()
-        if isFlying then return end
-        isFlying = true
-
-        -- Create a BodyVelocity to control the flight
-        local bodyVelocity = Instance.new("BodyVelocity")
-        bodyVelocity.MaxForce = Vector3.new(50000, 50000, 50000)
-        bodyVelocity.Velocity = flightVelocity
-        bodyVelocity.Parent = humanoidRootPart
-
-        -- Keep the flight active
-        while isFlying do
-            bodyVelocity.Velocity = flightVelocity
-            game:GetService("RunService").Heartbeat:Wait()
-        end
-    end
-
-    -- Stop flying and remove the BodyVelocity
-    local function stopFlying()
-        isFlying = false
-        for _, v in pairs(humanoidRootPart:GetChildren()) do
-            if v:IsA("BodyVelocity") then
-                v:Destroy()
-            end
-        end
-    end
-
-    -- Speed Hack (adjust WalkSpeed)
-    local function setSpeed(speed)
-        humanoid.WalkSpeed = speed
-    end
-
-    -- Function to make the player invisible
-    local function setInvisibility(invisible)
-        isInvisible = invisible
-        for _, part in pairs(character:GetChildren()) do
-            if part:IsA("BasePart") then
-                -- Set transparency and disable collisions for all parts
-                part.Transparency = invisible and 1 or 0
-                part.CanCollide = not invisible
-            end
-        end
-
-        -- Make the humanoid invisible as well (for the health bar, etc.)
-        if character:FindFirstChild("Humanoid") then
-            local humanoid = character.Humanoid
-            humanoid.HealthDisplayType = invisible and Enum.HealthDisplayType.None or Enum.HealthDisplayType.Bar
-        end
-    end
-
-    -- Function to create a list of other players
-    local function updatePlayerList()
-        local playerList = game.Players:GetPlayers()
-        local playerNames = {}
-        
-        for _, p in pairs(playerList) do
-            if p ~= player then
-                table.insert(playerNames, p.Name)
-            end
-        end
-        return playerNames
-    end
-
-    -- Add the player list to the scrollable menu
-    local function addPlayerList()
-        local playerNames = updatePlayerList()
-
-        -- Player selection button
-        local playerSelectionButton = Instance.new("TextButton")
-        playerSelectionButton.Size = UDim2.new(1, 0, 0, 50)
-        playerSelectionButton.Text = "Select Target Player"
-        playerSelectionButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-        playerSelectionButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-        playerSelectionButton.Parent = scrollFrame
-
-        playerSelectionButton.MouseButton1Click:Connect(function()
-            -- Open a dropdown of players to select
-            for _, playerName in pairs(playerNames) do
-                createButton(playerName, function()
-                    local targetPlayer = game.Players:FindFirstChild(playerName)
-                    if targetPlayer then
-                        teleportToPlayer(targetPlayer)  -- Teleport to selected player
-                    end
-                end)
-            end
-        end)
-    end
-
-    -- Add common cheat options
-    createButton("Toggle Flight", function()
-        if isFlying then
-            stopFlying()  -- Stop flying if already flying
-        else
-            startFlying()  -- Start flying if not already flying
+    -- Flight controls: Use WASD or arrow keys for movement
+    local userInputService = game:GetService("UserInputService")
+    userInputService.InputBegan:Connect(function(input)
+        if input.KeyCode == Enum.KeyCode.Space then
+            bodyVelocity.Velocity = Vector3.new(0, height, 0)  -- Going up
+        elseif input.KeyCode == Enum.KeyCode.S then
+            bodyVelocity.Velocity = Vector3.new(0, 0, -speed)  -- Moving backwards
+        elseif input.KeyCode == Enum.KeyCode.W then
+            bodyVelocity.Velocity = Vector3.new(0, 0, speed)  -- Moving forwards
+        elseif input.KeyCode == Enum.KeyCode.A then
+            bodyVelocity.Velocity = Vector3.new(-speed, 0, 0)  -- Moving left
+        elseif input.KeyCode == Enum.KeyCode.D then
+            bodyVelocity.Velocity = Vector3.new(speed, 0, 0)  -- Moving right
         end
     end)
-
-    createButton("Toggle Speed", function()
-        if humanoid.WalkSpeed == 16 then  -- Default speed in Roblox
-            setSpeed(16 * 2)  -- Set increased speed
-        else
-            setSpeed(16)  -- Reset to normal speed
-        end
-    end)
-
-    createButton("Toggle Invisibility", function()
-        setInvisibility(not isInvisible)  -- Toggle invisibility
-    end)
-
-    createButton("Teleport to Random Player", function()
-        local playerList = game.Players:GetPlayers()
-        local targetPlayer = playerList[math.random(1, #playerList)]  -- Randomly select a player
-        teleportToPlayer(targetPlayer)
-    end)
-
-    -- Add the player selection to the menu
-    addPlayerList()
 end
 
--- Create the UI
-createUI()
+local function stopFlying()
+    if not flying then return end
+    flying = false
+
+    -- Enable gravity and stop flight
+    humanoid.PlatformStand = false
+    hrp:FindFirstChildOfClass("BodyVelocity"):Destroy()
+end
+
+-- Toggle Invisibility
+local function toggleInvisibility()
+    if isInvisible then
+        -- Make player visible again
+        character:FindFirstChild("Head").Transparency = 0
+        for _, part in pairs(character:GetChildren()) do
+            if part:IsA("BasePart") then
+                part.Transparency = 0
+            end
+        end
+    else
+        -- Make player invisible
+        character:FindFirstChild("Head").Transparency = 1
+        for _, part in pairs(character:GetChildren()) do
+            if part:IsA("BasePart") then
+                part.Transparency = 1
+            end
+        end
+    end
+    isInvisible = not isInvisible
+end
+
+-- No-Clip (pass through walls)
+local function toggleNoClip()
+    noClipActive = not noClipActive
+    if noClipActive then
+        humanoid.PlatformStand = true
+        -- Disable collision with the world
+        for _, part in pairs(character:GetChildren()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = false
+            end
+        end
+    else
+        humanoid.PlatformStand = false
+        -- Re-enable collision with the world
+        for _, part in pairs(character:GetChildren()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = true
+            end
+        end
+    end
+end
+
+-- Speed Hack (change walk speed)
+local function setWalkSpeed(newSpeed)
+    humanoid.WalkSpeed = newSpeed
+end
+
+-- UI Elements to Control Features
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+-- Create Flight Button
+local flightButton = Instance.new("TextButton")
+flightButton.Size = UDim2.new(0, 200, 0, 50)
+flightButton.Position = UDim2.new(0, 0, 0, 0)
+flightButton.Text = "Toggle Flight"
+flightButton.Parent = screenGui
+flightButton.MouseButton1Click:Connect(function()
+    if flying then
+        stopFlying()
+    else
+        startFlying()
+    end
+end)
+
+-- Create Invisibility Button
+local invisibilityButton = Instance.new("TextButton")
+invisibilityButton.Size = UDim2.new(0, 200, 0, 50)
+invisibilityButton.Position = UDim2.new(0, 0, 0, 60)
+invisibilityButton.Text = "Toggle Invisibility"
+invisibilityButton.Parent = screenGui
+invisibilityButton.MouseButton1Click:Connect(toggleInvisibility)
+
+-- Create No-Clip Button
+local noClipButton = Instance.new("TextButton")
+noClipButton.Size = UDim2.new(0, 200, 0, 50)
+noClipButton.Position = UDim2.new(0, 0, 0, 120)
+noClipButton.Text = "Toggle No-Clip"
+noClipButton.Parent = screenGui
+noClipButton.MouseButton1Click:Connect(toggleNoClip)
+
+-- Create Speed Control Button
+local speedButton = Instance.new("TextButton")
+speedButton.Size = UDim2.new(0, 200, 0, 50)
+speedButton.Position = UDim2.new(0, 0, 0, 180)
+speedButton.Text = "Set Speed"
+speedButton.Parent = screenGui
+speedButton.MouseButton1Click:Connect(function()
+    local newSpeed = tonumber(game:GetService("UserInputService"):GetStringForKeyCode(Enum.KeyCode.One)) or 50
+    setWalkSpeed(newSpeed)
+end)
