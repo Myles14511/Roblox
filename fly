@@ -1,59 +1,93 @@
--- Flight, Tsunami, and Cheat Script for Testing Anti-Cheat
+-- Main Cheat Script with UI and Cheats (Flight, 1x1x1x1, c00lkidd's World Manipulation, Speed Hack)
 
+-- Services
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
-local humanoid = character:WaitForChild("Humanoid")
 local hrp = character:WaitForChild("HumanoidRootPart")
 local userInputService = game:GetService("UserInputService")
 local runService = game:GetService("RunService")
-local replicatedStorage = game:GetService("ReplicatedStorage")
+local gui = Instance.new("ScreenGui", game.CoreGui)
+gui.Name = "ExploitCheatGui"
+gui.ResetOnSpawn = false
 
--- UI Setup
-local screenGui = Instance.new("ScreenGui", game.CoreGui)
-screenGui.Name = "ExploitCheatGui"
-screenGui.ResetOnSpawn = false
+-- UI Setup (Centered Toggleable Menu)
+local menuVisible = false
 
-local toggleFlyButton = Instance.new("TextButton", screenGui)
-toggleFlyButton.Size = UDim2.new(0, 200, 0, 50)
-toggleFlyButton.Position = UDim2.new(0.5, -100, 0.85, 0)
-toggleFlyButton.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
-toggleFlyButton.TextColor3 = Color3.new(1, 1, 1)
-toggleFlyButton.Text = "Toggle Fly"
-toggleFlyButton.Font = Enum.Font.SourceSansBold
-toggleFlyButton.TextSize = 18
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0, 250, 0, 300)
+frame.Position = UDim2.new(0.5, -125, 0.5, -150)
+frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+frame.Visible = false
 
-local toggleTsunamiButton = Instance.new("TextButton", screenGui)
-toggleTsunamiButton.Size = UDim2.new(0, 200, 0, 50)
-toggleTsunamiButton.Position = UDim2.new(0.5, -100, 0.8, 0)
-toggleTsunamiButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-toggleTsunamiButton.TextColor3 = Color3.new(1, 1, 1)
-toggleTsunamiButton.Text = "Toggle Tsunami"
-toggleTsunamiButton.Font = Enum.Font.SourceSansBold
-toggleTsunamiButton.TextSize = 18
+local toggleButton = Instance.new("TextButton", frame)
+toggleButton.Size = UDim2.new(0, 240, 0, 50)
+toggleButton.Position = UDim2.new(0, 5, 0, 10)
+toggleButton.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+toggleButton.TextColor3 = Color3.new(1, 1, 1)
+toggleButton.Text = "Toggle Menu"
+toggleButton.Font = Enum.Font.SourceSansBold
+toggleButton.TextSize = 18
 
-local toggleSpeedButton = Instance.new("TextButton", screenGui)
-toggleSpeedButton.Size = UDim2.new(0, 200, 0, 50)
-toggleSpeedButton.Position = UDim2.new(0.5, -100, 0.75, 0)
-toggleSpeedButton.BackgroundColor3 = Color3.fromRGB(255, 165, 0)
-toggleSpeedButton.TextColor3 = Color3.new(1, 1, 1)
-toggleSpeedButton.Text = "Toggle Speed Hack"
-toggleSpeedButton.Font = Enum.Font.SourceSansBold
-toggleSpeedButton.TextSize = 18
+local toggleFlightButton = Instance.new("TextButton", frame)
+toggleFlightButton.Size = UDim2.new(0, 240, 0, 50)
+toggleFlightButton.Position = UDim2.new(0, 5, 0, 70)
+toggleFlightButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+toggleFlightButton.TextColor3 = Color3.new(1, 1, 1)
+toggleFlightButton.Text = "Toggle Flight"
+toggleFlightButton.Font = Enum.Font.SourceSansBold
+toggleFlightButton.TextSize = 18
+
+local spawn1x1Button = Instance.new("TextButton", frame)
+spawn1x1Button.Size = UDim2.new(0, 240, 0, 50)
+spawn1x1Button.Position = UDim2.new(0, 5, 0, 130)
+spawn1x1Button.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+spawn1x1Button.TextColor3 = Color3.new(1, 1, 1)
+spawn1x1Button.Text = "Spawn 1x1x1x1"
+spawn1x1Button.Font = Enum.Font.SourceSansBold
+spawn1x1Button.TextSize = 18
+
+local spawnRandomObjectButton = Instance.new("TextButton", frame)
+spawnRandomObjectButton.Size = UDim2.new(0, 240, 0, 50)
+spawnRandomObjectButton.Position = UDim2.new(0, 5, 0, 190)
+spawnRandomObjectButton.BackgroundColor3 = Color3.fromRGB(255, 165, 0)
+spawnRandomObjectButton.TextColor3 = Color3.new(1, 1, 1)
+spawnRandomObjectButton.Text = "Spawn Random Object"
+spawnRandomObjectButton.Font = Enum.Font.SourceSansBold
+spawnRandomObjectButton.TextSize = 18
 
 -- Cheat Variables
 local flying = false
-local speedHackEnabled = false
-local tsunamiActive = false
-local speedMultiplier = 3  -- Speed multiplier for walking speed
-local flightSpeed = 100  -- Flight speed
-
 local bodyVelocity, bodyGyro
+local flightSpeed = 50
+local noclip = false
+
+-- Toggle Menu Visibility
+toggleButton.MouseButton1Click:Connect(function()
+    menuVisible = not menuVisible
+    frame.Visible = menuVisible
+end)
+
+-- 1x1x1x1 Model (Simulated)
+local function create1x1x1x1()
+    local model = Instance.new("Model")
+    model.Name = "1x1x1x1"
+    model.Parent = game.Workspace
+
+    local bodyPart = Instance.new("Part")
+    bodyPart.Size = Vector3.new(1, 1, 1)
+    bodyPart.Position = game.Players.LocalPlayer.Character.HumanoidRootPart.Position + Vector3.new(5, 0, 0)
+    bodyPart.Anchored = true
+    bodyPart.CanCollide = false
+    bodyPart.BrickColor = BrickColor.new("Bright red")
+    bodyPart.Parent = model
+end
 
 -- Flight Mode
-local function toggleFlight()
-    flying = not flying
+local function enableFlight()
     if flying then
-        humanoid.PlatformStand = true
+        if bodyVelocity then bodyVelocity:Destroy() end
+        if bodyGyro then bodyGyro:Destroy() end
+
         bodyVelocity = Instance.new("BodyVelocity")
         bodyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
         bodyVelocity.Velocity = Vector3.zero
@@ -72,85 +106,52 @@ local function toggleFlight()
             end
         end)
     else
-        humanoid.PlatformStand = false
         if bodyVelocity then bodyVelocity:Destroy() end
         if bodyGyro then bodyGyro:Destroy() end
     end
 end
 
--- Speed Hack
-local function toggleSpeedHack()
-    speedHackEnabled = not speedHackEnabled
-    if speedHackEnabled then
-        humanoid.WalkSpeed = humanoid.WalkSpeed * speedMultiplier
-    else
-        humanoid.WalkSpeed = humanoid.WalkSpeed / speedMultiplier
+-- Toggle Flight
+toggleFlightButton.MouseButton1Click:Connect(function()
+    flying = not flying
+    enableFlight()
+end)
+
+-- Spawn Random Object
+spawnRandomObjectButton.MouseButton1Click:Connect(function()
+    local part = Instance.new("Part")
+    part.Size = Vector3.new(10, 10, 10)
+    part.Position = Vector3.new(math.random(-50, 50), 500, math.random(-50, 50))
+    part.Anchored = true
+    part.BrickColor = BrickColor.new("Bright yellow")
+    part.Parent = game.Workspace
+end)
+
+-- Spawn 1x1x1x1 Model
+spawn1x1Button.MouseButton1Click:Connect(function()
+    create1x1x1x1()
+end)
+
+-- World Manipulation (Spawn large block)
+local function editWorld()
+    local part = Instance.new("Part")
+    part.Size = Vector3.new(50, 5, 50)
+    part.Position = game.Players.LocalPlayer.Character.HumanoidRootPart.Position + Vector3.new(0, 10, 0)
+    part.Anchored = true
+    part.CanCollide = true
+    part.BrickColor = BrickColor.new("Bright green")
+    part.Parent = game.Workspace
+
+    -- Clone and stack blocks
+    for i = 1, 10 do
+        local newPart = part:Clone()
+        newPart.Position = part.Position + Vector3.new(0, 10 * i, 0)
+        newPart.Parent = game.Workspace
     end
 end
 
--- Tsunami (affects all players)
-local function summonTsunami()
-    tsunamiActive = not tsunamiActive
-    if tsunamiActive then
-        -- Create the tsunami effect and damage players
-        local tsunami = Instance.new("Part")
-        tsunami.Size = Vector3.new(100, 100, 100)
-        tsunami.Position = Vector3.new(0, 500, 0)
-        tsunami.Anchored = true
-        tsunami.CanCollide = false
-        tsunami.Parent = workspace
+-- Add more functionality if needed
+-- Example: Run editWorld when needed
 
-        local function moveTsunami()
-            while tsunamiActive do
-                tsunami.Position = tsunami.Position - Vector3.new(0, 10, 0)
-                for _, player in pairs(game.Players:GetPlayers()) do
-                    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                        local distance = (player.Character.HumanoidRootPart.Position - tsunami.Position).Magnitude
-                        if distance < 50 then
-                            player:Kick("You were hit by a tsunami!")
-                        end
-                    end
-                end
-                wait(0.1)
-            end
-        end
-
-        -- Start the tsunami movement
-        moveTsunami()
-    end
-end
-
--- Mobile Flight Control (based on touch)
-local function mobileFlightControl()
-    local touchStart = nil
-    userInputService.TouchMoved:Connect(function(input)
-        if flying then
-            if touchStart then
-                local delta = input.Position - touchStart
-                hrp.Velocity = Vector3.new(delta.X, delta.Y, 0) * flightSpeed
-            end
-        end
-    end)
-
-    userInputService.TouchStarted:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.Touch then
-            touchStart = input.Position
-        end
-    end)
-
-    userInputService.TouchEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.Touch then
-            touchStart = nil
-        end
-    end)
-end
-
--- Button Click Handlers
-toggleFlyButton.MouseButton1Click:Connect(toggleFlight)
-toggleSpeedButton.MouseButton1Click:Connect(toggleSpeedHack)
-toggleTsunamiButton.MouseButton1Click:Connect(summonTsunami)
-
--- Run Mobile Flight Control (only for mobile devices)
-if userInputService.TouchEnabled then
-    mobileFlightControl()
-end
+-- Final Setup: Toggle the UI and cheat buttons
+frame.Visible = false
