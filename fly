@@ -1,4 +1,4 @@
--- Cheat Test Script with Advanced Features
+-- Cheat Test Script with Advanced Features for All Players
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoid = character:WaitForChild("Humanoid")
@@ -55,7 +55,20 @@ local tsunamiActive = false
 -- Flight Mode
 local bodyVelocity, bodyGyro
 
-local function toggleFlying()
+-- Toggle Menu Visibility
+toggleMenuButton.MouseButton1Click:Connect(function()
+    menuVisible = not menuVisible
+    if menuVisible then
+        toggleFlyButton.Visible = true
+        toggleSpeedButton.Visible = true
+    else
+        toggleFlyButton.Visible = false
+        toggleSpeedButton.Visible = false
+    end
+end)
+
+-- Flight Toggle
+toggleFlyButton.MouseButton1Click:Connect(function()
     flying = not flying
     if flying then
         humanoid.PlatformStand = true
@@ -68,117 +81,112 @@ local function toggleFlying()
         bodyGyro.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
         bodyGyro.CFrame = hrp.CFrame
         bodyGyro.Parent = hrp
+
+        runService.Heartbeat:Connect(function()
+            if flying then
+                local direction = hrp.CFrame.LookVector * flightSpeed + Vector3.new(0, 2, 0)
+                bodyVelocity.Velocity = direction
+                bodyGyro.CFrame = hrp.CFrame
+            end
+        end)
     else
         humanoid.PlatformStand = false
         if bodyVelocity then bodyVelocity:Destroy() end
         if bodyGyro then bodyGyro:Destroy() end
     end
-end
+end)
 
--- Toggle Speed Hack
-local function toggleSpeedHack()
+-- Speed Hack Toggle
+toggleSpeedButton.MouseButton1Click:Connect(function()
     speedHackEnabled = not speedHackEnabled
     if speedHackEnabled then
         humanoid.WalkSpeed = humanoid.WalkSpeed * speedMultiplier
     else
         humanoid.WalkSpeed = humanoid.WalkSpeed / speedMultiplier
     end
-end
+end)
 
--- Summon Meteor Impact
+-- Meteor Summon (Replicated for all players)
 local function summonMeteor()
     local meteor = Instance.new("Part")
     meteor.Size = Vector3.new(10, 10, 10)
     meteor.Shape = Enum.PartType.Ball
-    meteor.Position = Vector3.new(math.random(-500, 500), 500, math.random(-500, 500))
-    meteor.Anchored = true
+    meteor.Position = hrp.Position + Vector3.new(0, 100, 0)
+    meteor.BrickColor = BrickColor.Red()
+    meteor.Anchored = false
     meteor.CanCollide = false
-    meteor.Color = Color3.fromRGB(255, 0, 0)
     meteor.Parent = workspace
 
-    -- Meteor falling
     local bodyVelocity = Instance.new("BodyVelocity")
-    bodyVelocity.MaxForce = Vector3.new(5000, 5000, 5000)
+    bodyVelocity.MaxForce = Vector3.new(100000, 100000, 100000)
     bodyVelocity.Velocity = Vector3.new(0, -50, 0)
     bodyVelocity.Parent = meteor
 
-    -- Apply damage to the environment and players on impact
-    meteor.Touched:Connect(function(hit)
-        if hit and hit.Parent then
-            local characterHit = hit.Parent:FindFirstChild("Humanoid")
-            if characterHit then
-                characterHit:TakeDamage(50) -- Damage to player
-            end
-            hit:Destroy() -- Destroy the part that was hit
-        end
-    end)
-
-    game.Debris:AddItem(meteor, 5) -- Cleanup after 5 seconds
+    -- Destroy the meteor after 5 seconds
+    game.Debris:AddItem(meteor, 5)
 end
 
--- Summon Tsunami Impact
+-- Tsunami Summon (Replicated for all players)
 local function summonTsunami()
-    if tsunamiActive then return end
-    tsunamiActive = true
-
     local tsunami = Instance.new("Part")
-    tsunami.Size = Vector3.new(1000, 100, 1000)
-    tsunami.Position = Vector3.new(0, 500, 0)
+    tsunami.Size = Vector3.new(100, 10, 100)
+    tsunami.Position = Vector3.new(hrp.Position.X, 500, hrp.Position.Z)
     tsunami.Anchored = true
-    tsunami.Color = Color3.fromRGB(0, 0, 255)
+    tsunami.CanCollide = true
+    tsunami.BrickColor = BrickColor.Blue()
     tsunami.Parent = workspace
 
-    -- Tsunami moving toward players
-    runService.Heartbeat:Connect(function()
-        if tsunamiActive then
-            tsunami.Position = tsunami.Position + Vector3.new(0, 0, -1)
-            if tsunami.Position.Y < 0 then
-                tsunamiActive = false
-                tsunami:Destroy()
-            end
-            -- Apply damage to players caught by tsunami
-            for _, player in pairs(game.Players:GetPlayers()) do
-                local character = player.Character
-                if character and (tsunami.Position - character.HumanoidRootPart.Position).Magnitude < 50 then
-                    local humanoid = character:FindFirstChild("Humanoid")
-                    if humanoid then
-                        humanoid:TakeDamage(20) -- Damage to player
-                    end
+    -- Move the tsunami towards players
+    local direction = (Vector3.new(hrp.Position.X, 500, hrp.Position.Z) - Vector3.new(hrp.Position.X, 0, hrp.Position.Z)).unit
+    tsunami.CFrame = tsunami.CFrame + direction * 1000
+
+    -- Apply damage to players in its path
+    for _, otherPlayer in ipairs(game.Players:GetPlayers()) do
+        if otherPlayer.Character and otherPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            local dist = (otherPlayer.Character.HumanoidRootPart.Position - tsunami.Position).Magnitude
+            if dist < 50 then
+                local humanoid = otherPlayer.Character:FindFirstChild("Humanoid")
+                if humanoid then
+                    humanoid.Health = humanoid.Health - 10 -- Damage players
                 end
             end
         end
-    end)
+    end
+
+    -- Destroy the tsunami after 10 seconds
+    game.Debris:AddItem(tsunami, 10)
 end
 
--- Toggle Menu Visibility
-toggleMenuButton.MouseButton1Click:Connect(function()
-    menuVisible = not menuVisible
-    screenGui.Enabled = menuVisible
+-- Meteor and Tsunami Activation Button
+local summonDisastersButton = Instance.new("TextButton", screenGui)
+summonDisastersButton.Size = UDim2.new(0, 200, 0, 50)
+summonDisastersButton.Position = UDim2.new(0.5, -100, 0.7, 0)
+summonDisastersButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+summonDisastersButton.TextColor3 = Color3.new(1, 1, 1)
+summonDisastersButton.Text = "Summon Disaster"
+summonDisastersButton.Font = Enum.Font.SourceSansBold
+summonDisastersButton.TextSize = 18
+
+summonDisastersButton.MouseButton1Click:Connect(function()
+    if not meteorsActive then
+        meteorsActive = true
+        summonMeteor() -- Summon meteor at the player's position
+    elseif not tsunamiActive then
+        tsunamiActive = true
+        summonTsunami() -- Summon tsunami
+    end
 end)
 
--- Event Handlers
-toggleFlyButton.MouseButton1Click:Connect(toggleFlying)
-toggleSpeedButton.MouseButton1Click:Connect(toggleSpeedHack)
-
--- Add Meteor and Tsunami Buttons to GUI
-local toggleMeteorButton = Instance.new("TextButton", screenGui)
-toggleMeteorButton.Size = UDim2.new(0, 200, 0, 50)
-toggleMeteorButton.Position = UDim2.new(0.5, -100, 0.7, 0)
-toggleMeteorButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-toggleMeteorButton.TextColor3 = Color3.new(1, 1, 1)
-toggleMeteorButton.Text = "Summon Meteor"
-toggleMeteorButton.Font = Enum.Font.SourceSansBold
-toggleMeteorButton.TextSize = 18
-
-toggleMeteorButton.MouseButton1Click:Connect(summonMeteor)
-
-local toggleTsunamiButton = Instance.new("TextButton", screenGui)
-toggleTsunamiButton.Size = UDim2.new(0, 200, 0, 50)
-toggleTsunamiButton.Position = UDim2.new(0.5, -100, 0.65, 0)
-toggleTsunamiButton.BackgroundColor3 = Color3.fromRGB(0, 0, 255)
-toggleTsunamiButton.TextColor3 = Color3.new(1, 1, 1)
-toggleTsunamiButton.Text = "Summon Tsunami"
-toggleTsunamiButton.Font = Enum.Font.SourceSansBold
-toggleTsunamiButton.TextSize = 18
-
-toggleTsunamiButton.MouseButton1Click:Connect(summonTsunami)
+-- Make it so the menu is still toggleable and functional.
+toggleMenuButton.MouseButton1Click:Connect(function()
+    menuVisible = not menuVisible
+    if menuVisible then
+        toggleFlyButton.Visible = true
+        toggleSpeedButton.Visible = true
+        summonDisastersButton.Visible = true
+    else
+        toggleFlyButton.Visible = false
+        toggleSpeedButton.Visible = false
+        summonDisastersButton.Visible = false
+    end
+end)
