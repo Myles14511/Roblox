@@ -1,95 +1,159 @@
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
+local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+local humanoid = character:WaitForChild("Humanoid")
 
-local targetPlayer = nil
+-- Flight variables
+local flightSpeed = 50
+local isFlying = false
+local flightVelocity = Vector3.new(0, 0, 0)
 
--- UI Setup (creating buttons to trigger cheats)
+-- Speed hack (walk speed multiplier)
+local speedMultiplier = 2
+
+-- Create a UI with scrolling list and buttons for cheats
 local function createUI()
+    -- Main UI container
     local screenGui = Instance.new("ScreenGui")
     screenGui.Parent = player:WaitForChild("PlayerGui")
+    
+    -- Frame for UI (Left side of the screen)
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Size = UDim2.new(0, 250, 0, 400)
+    mainFrame.Position = UDim2.new(0, 0, 0.5, -200)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    mainFrame.BackgroundTransparency = 0.5
+    mainFrame.Parent = screenGui
 
-    -- Create a button for selecting a target player
-    local targetPlayerDropdown = Instance.new("TextButton")
-    targetPlayerDropdown.Size = UDim2.new(0, 200, 0, 50)
-    targetPlayerDropdown.Position = UDim2.new(0, 10, 0, 50)  -- Positioning on the left side (fixed)
-    targetPlayerDropdown.Text = "Select Target Player"
-    targetPlayerDropdown.Parent = screenGui
+    -- Scrolling Frame for player list and cheat options
+    local scrollFrame = Instance.new("ScrollingFrame")
+    scrollFrame.Size = UDim2.new(1, 0, 1, 0)
+    scrollFrame.Position = UDim2.new(0, 0, 0, 0)
+    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 500)  -- Make the frame scrollable
+    scrollFrame.ScrollBarThickness = 8
+    scrollFrame.Parent = mainFrame
 
-    -- List of players as buttons
-    local playerButtons = {}
+    -- Layout for the items inside the scrolling frame
+    local layout = Instance.new("UIListLayout")
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
+    layout.Parent = scrollFrame
 
-    -- Function to create a list of buttons for each player
-    local function updatePlayerList()
-        local yPosition = 110  -- Start positioning the buttons below the first button
+    -- Add buttons to the scrollable menu
+    local function createButton(name, callback)
+        local button = Instance.new("TextButton")
+        button.Size = UDim2.new(1, 0, 0, 50)
+        button.Text = name
+        button.TextColor3 = Color3.fromRGB(255, 255, 255)
+        button.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        button.Parent = scrollFrame
 
-        -- Remove any old player buttons first (to reset the list)
-        for _, button in pairs(playerButtons) do
-            button:Destroy()
+        button.MouseButton1Click:Connect(callback)
+    end
+
+    -- Function to make the player fly
+    local function startFlying()
+        if isFlying then return end
+        isFlying = true
+
+        -- Create a BodyVelocity to control the flight
+        local bodyVelocity = Instance.new("BodyVelocity")
+        bodyVelocity.MaxForce = Vector3.new(50000, 50000, 50000)
+        bodyVelocity.Velocity = flightVelocity
+        bodyVelocity.Parent = humanoidRootPart
+
+        -- Keep the flight active
+        while isFlying do
+            bodyVelocity.Velocity = flightVelocity
+            game:GetService("RunService").Heartbeat:Wait()
         end
+    end
 
-        -- Create buttons for each player
-        for _, p in pairs(game.Players:GetPlayers()) do
-            if p ~= player then
-                -- Create a button for each player
-                local playerButton = Instance.new("TextButton")
-                playerButton.Size = UDim2.new(0, 200, 0, 30)
-                playerButton.Position = UDim2.new(0, 10, 0, yPosition)  -- Positioning on the left side
-                playerButton.Text = p.Name
-                playerButton.Parent = screenGui
-
-                -- When the button is clicked, set the target player
-                playerButton.MouseButton1Click:Connect(function()
-                    targetPlayer = p
-                    print("Selected target player: " .. p.Name)  -- Debugging output
-                end)
-
-                -- Add button to the list of buttons for removal later
-                table.insert(playerButtons, playerButton)
-
-                -- Increment the Y position for the next player button
-                yPosition = yPosition + 40
+    -- Stop flying and remove the BodyVelocity
+    local function stopFlying()
+        isFlying = false
+        for _, v in pairs(humanoidRootPart:GetChildren()) do
+            if v:IsA("BodyVelocity") then
+                v:Destroy()
             end
         end
     end
 
-    -- Update the player list
-    updatePlayerList()
+    -- Speed Hack (adjust WalkSpeed)
+    local function setSpeed(speed)
+        humanoid.WalkSpeed = speed
+    end
 
-    -- Button to make the selected player explode (and kill them)
-    local explodeButton = Instance.new("TextButton")
-    explodeButton.Size = UDim2.new(0, 200, 0, 50)
-    explodeButton.Position = UDim2.new(0, 10, 0, 350)  -- Positioning on the left side (fixed)
-    explodeButton.Text = "Explode Selected Player"
-    explodeButton.Parent = screenGui
-
-    -- When clicked, it will cause the selected player to explode (and get killed)
-    explodeButton.MouseButton1Click:Connect(function()
-        if targetPlayer then
-            print("Exploding player: " .. targetPlayer.Name)  -- Debugging output
-            makePlayerExplode(targetPlayer)
-        else
-            print("Please select a player first.")  -- Debugging output
-        end
-    end)
-end
-
--- Function to make another player explode (only affects your client)
-local function makePlayerExplode(targetPlayer)
-    local character = targetPlayer.Character
-    if character then
-        -- Create explosion at their position
-        local explosion = Instance.new("Explosion")
-        explosion.Position = character.HumanoidRootPart.Position
-        explosion.BlastRadius = 10
-        explosion.BlastPressure = 10000
-        explosion.Parent = workspace
-
-        -- Ensure the player's health is set to 0 to simulate an instant kill
-        local humanoid = character:FindFirstChild("Humanoid")
-        if humanoid then
-            humanoid.Health = 0  -- This will "explode" the player
+    -- Teleport to another player
+    local function teleportToPlayer(targetPlayer)
+        if targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            humanoidRootPart.CFrame = targetPlayer.Character.HumanoidRootPart.CFrame
         end
     end
+
+    -- Function to create a list of other players
+    local function updatePlayerList()
+        local playerList = game.Players:GetPlayers()
+        local playerNames = {}
+        
+        for _, p in pairs(playerList) do
+            if p ~= player then
+                table.insert(playerNames, p.Name)
+            end
+        end
+        return playerNames
+    end
+
+    -- Add the player list to the scrollable menu
+    local function addPlayerList()
+        local playerNames = updatePlayerList()
+
+        -- Player selection button
+        local playerSelectionButton = Instance.new("TextButton")
+        playerSelectionButton.Size = UDim2.new(1, 0, 0, 50)
+        playerSelectionButton.Text = "Select Target Player"
+        playerSelectionButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        playerSelectionButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        playerSelectionButton.Parent = scrollFrame
+
+        playerSelectionButton.MouseButton1Click:Connect(function()
+            -- Open a dropdown of players to select
+            for _, playerName in pairs(playerNames) do
+                createButton(playerName, function()
+                    local targetPlayer = game.Players:FindFirstChild(playerName)
+                    if targetPlayer then
+                        teleportToPlayer(targetPlayer)  -- Teleport to selected player
+                    end
+                end)
+            end
+        end)
+    end
+
+    -- Add common cheat options
+    createButton("Toggle Flight", function()
+        if isFlying then
+            stopFlying()  -- Stop flying if already flying
+        else
+            startFlying()  -- Start flying if not already flying
+        end
+    end)
+
+    createButton("Toggle Speed", function()
+        if humanoid.WalkSpeed == 16 then  -- Default speed in Roblox
+            setSpeed(16 * speedMultiplier)  -- Set increased speed
+        else
+            setSpeed(16)  -- Reset to normal speed
+        end
+    end)
+
+    createButton("Teleport to Random Player", function()
+        local playerList = game.Players:GetPlayers()
+        local targetPlayer = playerList[math.random(1, #playerList)]  -- Randomly select a player (for now)
+        teleportToPlayer(targetPlayer)
+    end)
+
+    -- Add the player selection to the menu
+    addPlayerList()
 end
 
+-- Create the UI
 createUI()
