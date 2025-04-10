@@ -12,6 +12,8 @@ local walkingSpeed = 16
 local targetPlayer = nil
 local speedSliderValue = flightSpeed  -- Default flight speed
 local flightHeight = 50
+local isInvisible = false
+local isSpeedToggled = false
 
 -- UI Setup
 local screenGui = Instance.new("ScreenGui")
@@ -57,27 +59,27 @@ tpButton.Text = "Teleport to Player"
 tpButton.BackgroundColor3 = Color3.fromRGB(0, 0, 255)
 tpButton.Parent = menuFrame
 
+-- Toggle Invisibility button
+local invisibilityButton = Instance.new("TextButton")
+invisibilityButton.Size = UDim2.new(0, 200, 0, 50)
+invisibilityButton.Position = UDim2.new(0, 0, 0, 190)
+invisibilityButton.Text = "Toggle Invisibility"
+invisibilityButton.BackgroundColor3 = Color3.fromRGB(255, 255, 0)
+invisibilityButton.Parent = menuFrame
+
 -- Speed Control button
 local speedButton = Instance.new("TextButton")
 speedButton.Size = UDim2.new(0, 200, 0, 50)
-speedButton.Position = UDim2.new(0, 0, 0, 190)
-speedButton.Text = "Set Speed"
-speedButton.BackgroundColor3 = Color3.fromRGB(255, 255, 0)
+speedButton.Position = UDim2.new(0, 0, 0, 250)
+speedButton.Text = "Toggle Speed"
+speedButton.BackgroundColor3 = Color3.fromRGB(0, 255, 255)
 speedButton.Parent = menuFrame
-
--- Speed slider (adjustable flight and walking speed)
-local speedSlider = Instance.new("TextBox")
-speedSlider.Size = UDim2.new(0, 200, 0, 50)
-speedSlider.Position = UDim2.new(0, 0, 0, 250)
-speedSlider.Text = "Speed: " .. flightSpeed
-speedSlider.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
-speedSlider.Parent = menuFrame
 
 -- Function to toggle flight mode
 local function toggleFlight()
     isFlying = not isFlying
     if isFlying then
-        -- Enable flight
+        -- Enable flight with forward/backward/up/down controls
         local bodyVelocity = Instance.new("BodyVelocity")
         bodyVelocity.MaxForce = Vector3.new(100000, 100000, 100000)
         bodyVelocity.Velocity = Vector3.new(0, flightSpeed, 0)
@@ -114,6 +116,40 @@ local function toggleNoClip()
     end
 end
 
+-- Function to toggle Invisibility
+local function toggleInvisibility()
+    isInvisible = not isInvisible
+    if isInvisible then
+        -- Make the character invisible
+        for _, part in pairs(character:GetChildren()) do
+            if part:IsA("BasePart") then
+                part.Transparency = 1
+            end
+        end
+    else
+        -- Make the character visible
+        for _, part in pairs(character:GetChildren()) do
+            if part:IsA("BasePart") then
+                part.Transparency = 0
+            end
+        end
+    end
+end
+
+-- Function to toggle Speed
+local function toggleSpeed()
+    isSpeedToggled = not isSpeedToggled
+    if isSpeedToggled then
+        -- Set walking speed to the custom flight speed
+        walkingSpeed = flightSpeed
+        character.Humanoid.WalkSpeed = walkingSpeed
+    else
+        -- Reset to normal walking speed
+        walkingSpeed = 16
+        character.Humanoid.WalkSpeed = walkingSpeed
+    end
+end
+
 -- Function to teleport to another player
 local function teleportToPlayer()
     if targetPlayer then
@@ -123,15 +159,20 @@ local function teleportToPlayer()
     end
 end
 
--- Function to update the speed from the slider
+-- Function to update the speed slider value
 local function updateSpeed()
     local speedValue = tonumber(speedSlider.Text)
     if speedValue then
         flightSpeed = speedValue
         speedSlider.Text = "Speed: " .. flightSpeed
-        walkingSpeed = speedValue
     end
 end
+
+-- Listen for the buttons to be clicked
+flightButton.MouseButton1Click:Connect(toggleFlight)
+noClipButton.MouseButton1Click:Connect(toggleNoClip)
+invisibilityButton.MouseButton1Click:Connect(toggleInvisibility)
+speedButton.MouseButton1Click:Connect(toggleSpeed)
 
 -- Function to create a player button in the player menu
 local function createPlayerButton(plr)
@@ -145,12 +186,6 @@ local function createPlayerButton(plr)
         print("Target player set to: " .. plr.Name)
     end)
 end
-
--- Listen for the buttons to be clicked
-flightButton.MouseButton1Click:Connect(toggleFlight)
-noClipButton.MouseButton1Click:Connect(toggleNoClip)
-tpButton.MouseButton1Click:Connect(teleportToPlayer)
-speedSlider.FocusLost:Connect(updateSpeed)
 
 -- Show player menu only when Teleport button is clicked
 tpButton.MouseButton1Click:Connect(function()
@@ -190,7 +225,26 @@ game:GetService("RunService").Heartbeat:Connect(function()
             humanoid.PlatformStand = true  -- Disable standing on the ground while flying
         end
         -- Apply flight speed and control the movement
-        character.HumanoidRootPart.Velocity = Vector3.new(0, flightSpeed, 0)
+        local moveDirection = Vector3.new()
+        if userInputService:IsKeyDown(Enum.KeyCode.W) then
+            moveDirection = moveDirection + character.HumanoidRootPart.CFrame.LookVector
+        end
+        if userInputService:IsKeyDown(Enum.KeyCode.S) then
+            moveDirection = moveDirection - character.HumanoidRootPart.CFrame.LookVector
+        end
+        if userInputService:IsKeyDown(Enum.KeyCode.A) then
+            moveDirection = moveDirection - character.HumanoidRootPart.CFrame.RightVector
+        end
+        if userInputService:IsKeyDown(Enum.KeyCode.D) then
+            moveDirection = moveDirection + character.HumanoidRootPart.CFrame.RightVector
+        end
+        if userInputService:IsKeyDown(Enum.KeyCode.Space) then
+            moveDirection = moveDirection + Vector3.new(0, 1, 0)  -- Going up
+        end
+        if userInputService:IsKeyDown(Enum.KeyCode.LeftControl) then
+            moveDirection = moveDirection - Vector3.new(0, 1, 0)  -- Going down
+        end
+        character.HumanoidRootPart.Velocity = moveDirection * flightSpeed
     else
         local humanoid = character:FindFirstChildOfClass("Humanoid")
         if humanoid then
@@ -199,21 +253,3 @@ game:GetService("RunService").Heartbeat:Connect(function()
         end
     end
 end)
-
--- Function to handle teleportation to players (set targetPlayer when a player is selected)
-game.Players.PlayerAdded:Connect(function(plr)
-    if plr ~= player then
-        local playerButton = Instance.new("TextButton")
-        playerButton.Size = UDim2.new(0, 200, 0, 30)
-        playerButton.Text = "Teleport to " .. plr.Name
-        playerButton.BackgroundColor3 = Color3.fromRGB(0, 255, 255)
-        playerButton.Parent = scrollFrame
-        playerButton.MouseButton1Click:Connect(function()
-            targetPlayer = plr
-            print("Target player set to: " .. plr.Name)
-        end)
-    end
-end)
-
--- Initial speed setup for the player (as walking speed or flight speed)
-walkingSpeed = flightSpeed
