@@ -1,4 +1,4 @@
--- Realistic Exploit-Style Cheat Script for Testing Anti-Cheats
+-- Flight, Tsunami, and Cheat Script for Testing Anti-Cheat
 
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
@@ -6,58 +6,51 @@ local humanoid = character:WaitForChild("Humanoid")
 local hrp = character:WaitForChild("HumanoidRootPart")
 local userInputService = game:GetService("UserInputService")
 local runService = game:GetService("RunService")
+local replicatedStorage = game:GetService("ReplicatedStorage")
 
 -- UI Setup
 local screenGui = Instance.new("ScreenGui", game.CoreGui)
 screenGui.Name = "ExploitCheatGui"
 screenGui.ResetOnSpawn = false
 
--- Create Buttons in the Middle of the Screen
-local menuFrame = Instance.new("Frame", screenGui)
-menuFrame.Size = UDim2.new(0, 200, 0, 300)
-menuFrame.Position = UDim2.new(0.5, -100, 0.5, -150)
-menuFrame.BackgroundTransparency = 0.5
-menuFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-
-local toggleFlyButton = Instance.new("TextButton", menuFrame)
-toggleFlyButton.Size = UDim2.new(0, 180, 0, 50)
-toggleFlyButton.Position = UDim2.new(0, 10, 0, 10)
+local toggleFlyButton = Instance.new("TextButton", screenGui)
+toggleFlyButton.Size = UDim2.new(0, 200, 0, 50)
+toggleFlyButton.Position = UDim2.new(0.5, -100, 0.85, 0)
 toggleFlyButton.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
 toggleFlyButton.TextColor3 = Color3.new(1, 1, 1)
 toggleFlyButton.Text = "Toggle Fly"
 toggleFlyButton.Font = Enum.Font.SourceSansBold
 toggleFlyButton.TextSize = 18
 
-local toggleTsunamiButton = Instance.new("TextButton", menuFrame)
-toggleTsunamiButton.Size = UDim2.new(0, 180, 0, 50)
-toggleTsunamiButton.Position = UDim2.new(0, 10, 0, 70)
-toggleTsunamiButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+local toggleTsunamiButton = Instance.new("TextButton", screenGui)
+toggleTsunamiButton.Size = UDim2.new(0, 200, 0, 50)
+toggleTsunamiButton.Position = UDim2.new(0.5, -100, 0.8, 0)
+toggleTsunamiButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
 toggleTsunamiButton.TextColor3 = Color3.new(1, 1, 1)
-toggleTsunamiButton.Text = "Summon Tsunami"
+toggleTsunamiButton.Text = "Toggle Tsunami"
 toggleTsunamiButton.Font = Enum.Font.SourceSansBold
 toggleTsunamiButton.TextSize = 18
 
-local menuToggleButton = Instance.new("TextButton", screenGui)
-menuToggleButton.Size = UDim2.new(0, 100, 0, 50)
-menuToggleButton.Position = UDim2.new(0.5, -50, 0, 10)
-menuToggleButton.BackgroundColor3 = Color3.fromRGB(255, 165, 0)
-menuToggleButton.TextColor3 = Color3.new(1, 1, 1)
-menuToggleButton.Text = "Toggle Menu"
-menuToggleButton.Font = Enum.Font.SourceSansBold
-menuToggleButton.TextSize = 18
-
-menuFrame.Visible = false  -- Menu is hidden by default
+local toggleSpeedButton = Instance.new("TextButton", screenGui)
+toggleSpeedButton.Size = UDim2.new(0, 200, 0, 50)
+toggleSpeedButton.Position = UDim2.new(0.5, -100, 0.75, 0)
+toggleSpeedButton.BackgroundColor3 = Color3.fromRGB(255, 165, 0)
+toggleSpeedButton.TextColor3 = Color3.new(1, 1, 1)
+toggleSpeedButton.Text = "Toggle Speed Hack"
+toggleSpeedButton.Font = Enum.Font.SourceSansBold
+toggleSpeedButton.TextSize = 18
 
 -- Cheat Variables
 local flying = false
 local speedHackEnabled = false
-local noclip = false
-local flightSpeed = 100  -- Speed multiplier for flight
-local tsunamiEnabled = false
+local tsunamiActive = false
+local speedMultiplier = 3  -- Speed multiplier for walking speed
+local flightSpeed = 100  -- Flight speed
+
 local bodyVelocity, bodyGyro
 
 -- Flight Mode
-local function toggleFlying()
+local function toggleFlight()
     flying = not flying
     if flying then
         humanoid.PlatformStand = true
@@ -73,7 +66,6 @@ local function toggleFlying()
 
         runService.Heartbeat:Connect(function()
             if flying then
-                -- Flight controls based on WASD keys (or mobile movement if implemented)
                 local direction = hrp.CFrame.LookVector * flightSpeed + Vector3.new(0, 2, 0)
                 bodyVelocity.Velocity = direction
                 bodyGyro.CFrame = hrp.CFrame
@@ -86,44 +78,79 @@ local function toggleFlying()
     end
 end
 
--- Tsunami Generation
+-- Speed Hack
+local function toggleSpeedHack()
+    speedHackEnabled = not speedHackEnabled
+    if speedHackEnabled then
+        humanoid.WalkSpeed = humanoid.WalkSpeed * speedMultiplier
+    else
+        humanoid.WalkSpeed = humanoid.WalkSpeed / speedMultiplier
+    end
+end
+
+-- Tsunami (affects all players)
 local function summonTsunami()
-    if not tsunamiEnabled then return end
+    tsunamiActive = not tsunamiActive
+    if tsunamiActive then
+        -- Create the tsunami effect and damage players
+        local tsunami = Instance.new("Part")
+        tsunami.Size = Vector3.new(100, 100, 100)
+        tsunami.Position = Vector3.new(0, 500, 0)
+        tsunami.Anchored = true
+        tsunami.CanCollide = false
+        tsunami.Parent = workspace
 
-    -- Create a tsunami effect
-    local tsunami = Instance.new("Part")
-    tsunami.Size = Vector3.new(100, 10, 100)
-    tsunami.Position = Vector3.new(math.random(-500, 500), 500, math.random(-500, 500))
-    tsunami.Anchored = true
-    tsunami.CanCollide = true
-    tsunami.Color = Color3.fromRGB(0, 0, 255)
-    tsunami.Parent = game.Workspace
-
-    -- Move the tsunami towards players (or a random direction)
-    game:GetService("TweenService"):Create(tsunami, TweenInfo.new(10), {Position = Vector3.new(0, 0, 0)}):Play()
-
-    -- Damaging players in the tsunami's path
-    runService.Heartbeat:Connect(function()
-        for _, player in pairs(game.Players:GetPlayers()) do
-            local dist = (player.Character.HumanoidRootPart.Position - tsunami.Position).Magnitude
-            if dist < 100 then
-                player:TakeDamage(50)  -- Adjust damage as necessary
+        local function moveTsunami()
+            while tsunamiActive do
+                tsunami.Position = tsunami.Position - Vector3.new(0, 10, 0)
+                for _, player in pairs(game.Players:GetPlayers()) do
+                    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                        local distance = (player.Character.HumanoidRootPart.Position - tsunami.Position).Magnitude
+                        if distance < 50 then
+                            player:Kick("You were hit by a tsunami!")
+                        end
+                    end
+                end
+                wait(0.1)
             end
+        end
+
+        -- Start the tsunami movement
+        moveTsunami()
+    end
+end
+
+-- Mobile Flight Control (based on touch)
+local function mobileFlightControl()
+    local touchStart = nil
+    userInputService.TouchMoved:Connect(function(input)
+        if flying then
+            if touchStart then
+                local delta = input.Position - touchStart
+                hrp.Velocity = Vector3.new(delta.X, delta.Y, 0) * flightSpeed
+            end
+        end
+    end)
+
+    userInputService.TouchStarted:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch then
+            touchStart = input.Position
+        end
+    end)
+
+    userInputService.TouchEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch then
+            touchStart = nil
         end
     end)
 end
 
--- Button Actions
-toggleFlyButton.MouseButton1Click:Connect(toggleFlying)
+-- Button Click Handlers
+toggleFlyButton.MouseButton1Click:Connect(toggleFlight)
+toggleSpeedButton.MouseButton1Click:Connect(toggleSpeedHack)
+toggleTsunamiButton.MouseButton1Click:Connect(summonTsunami)
 
-toggleTsunamiButton.MouseButton1Click:Connect(function()
-    tsunamiEnabled = not tsunamiEnabled
-    if tsunamiEnabled then
-        summonTsunami()
-    end
-end)
-
--- Toggle Menu Visibility
-menuToggleButton.MouseButton1Click:Connect(function()
-    menuFrame.Visible = not menuFrame.Visible
-end)
+-- Run Mobile Flight Control (only for mobile devices)
+if userInputService.TouchEnabled then
+    mobileFlightControl()
+end
