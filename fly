@@ -1,7 +1,6 @@
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local userInputService = game:GetService("UserInputService")
-local tweenService = game:GetService("TweenService")
 local replicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Initialize variables
@@ -9,9 +8,8 @@ local isFlying = false
 local isNoClipping = false
 local flightSpeed = 50
 local walkingSpeed = 16
-local defaultSpeed = walkingSpeed
-local speedSliderValue = flightSpeed  -- Default flight speed
 local targetPlayer = nil
+local speedSliderValue = flightSpeed  -- Default flight speed
 local flightHeight = 50
 
 -- UI Setup
