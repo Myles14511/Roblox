@@ -1,88 +1,103 @@
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
-local humanoid = character:WaitForChild("Humanoid")
-local hrp = character:WaitForChild("HumanoidRootPart")
-local flying = false
-local speed = 50  -- Default flight speed
-local walkSpeed = 16  -- Default walking speed
-local height = 10  -- Default height (adjustable during flight)
-local isInvisible = false
-local noClipActive = false
+local userInputService = game:GetService("UserInputService")
+local tweenService = game:GetService("TweenService")
+local replicatedStorage = game:GetService("ReplicatedStorage")
 
--- Flight and Speed Control
-local function startFlying()
-    if flying then return end
-    flying = true
-    
-    -- Disable gravity to simulate flying
-    humanoid.PlatformStand = true
-    local bodyVelocity = Instance.new("BodyVelocity")
-    bodyVelocity.MaxForce = Vector3.new(40000, 40000, 40000)
-    bodyVelocity.Velocity = Vector3.new(0, 0, 0)
-    bodyVelocity.Parent = hrp
+-- Initialize variables
+local isFlying = false
+local isNoClipping = false
+local flightSpeed = 50
+local walkingSpeed = 16
+local defaultSpeed = walkingSpeed
+local speedSliderValue = flightSpeed  -- Default flight speed
+local targetPlayer = nil
+local flightHeight = 50
 
-    -- Flight controls: Use WASD or arrow keys for movement
-    local userInputService = game:GetService("UserInputService")
-    userInputService.InputBegan:Connect(function(input)
-        if input.KeyCode == Enum.KeyCode.Space then
-            bodyVelocity.Velocity = Vector3.new(0, height, 0)  -- Going up
-        elseif input.KeyCode == Enum.KeyCode.S then
-            bodyVelocity.Velocity = Vector3.new(0, 0, -speed)  -- Moving backwards
-        elseif input.KeyCode == Enum.KeyCode.W then
-            bodyVelocity.Velocity = Vector3.new(0, 0, speed)  -- Moving forwards
-        elseif input.KeyCode == Enum.KeyCode.A then
-            bodyVelocity.Velocity = Vector3.new(-speed, 0, 0)  -- Moving left
-        elseif input.KeyCode == Enum.KeyCode.D then
-            bodyVelocity.Velocity = Vector3.new(speed, 0, 0)  -- Moving right
-        end
-    end)
-end
+-- UI Setup
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = player:WaitForChild("PlayerGui")
 
-local function stopFlying()
-    if not flying then return end
-    flying = false
+local menuFrame = Instance.new("Frame")
+menuFrame.Size = UDim2.new(0, 200, 0, 400)
+menuFrame.Position = UDim2.new(0, 10, 0, 100)
+menuFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+menuFrame.BackgroundTransparency = 0.5
+menuFrame.Parent = screenGui
 
-    -- Enable gravity and stop flight
-    humanoid.PlatformStand = false
-    hrp:FindFirstChildOfClass("BodyVelocity"):Destroy()
-end
+-- Toggle flight button
+local flightButton = Instance.new("TextButton")
+flightButton.Size = UDim2.new(0, 200, 0, 50)
+flightButton.Position = UDim2.new(0, 0, 0, 10)
+flightButton.Text = "Toggle Flight"
+flightButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+flightButton.Parent = menuFrame
 
--- Toggle Invisibility
-local function toggleInvisibility()
-    if isInvisible then
-        -- Make player visible again
-        character:FindFirstChild("Head").Transparency = 0
-        for _, part in pairs(character:GetChildren()) do
-            if part:IsA("BasePart") then
-                part.Transparency = 0
-            end
-        end
+-- Toggle No-Clip button
+local noClipButton = Instance.new("TextButton")
+noClipButton.Size = UDim2.new(0, 200, 0, 50)
+noClipButton.Position = UDim2.new(0, 0, 0, 70)
+noClipButton.Text = "Toggle No-Clip"
+noClipButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+noClipButton.Parent = menuFrame
+
+-- Teleport button
+local tpButton = Instance.new("TextButton")
+tpButton.Size = UDim2.new(0, 200, 0, 50)
+tpButton.Position = UDim2.new(0, 0, 0, 130)
+tpButton.Text = "Teleport to Player"
+tpButton.BackgroundColor3 = Color3.fromRGB(0, 0, 255)
+tpButton.Parent = menuFrame
+
+-- Speed Control button
+local speedButton = Instance.new("TextButton")
+speedButton.Size = UDim2.new(0, 200, 0, 50)
+speedButton.Position = UDim2.new(0, 0, 0, 190)
+speedButton.Text = "Set Speed"
+speedButton.BackgroundColor3 = Color3.fromRGB(255, 255, 0)
+speedButton.Parent = menuFrame
+
+-- Speed slider (adjustable flight and walking speed)
+local speedSlider = Instance.new("TextBox")
+speedSlider.Size = UDim2.new(0, 200, 0, 50)
+speedSlider.Position = UDim2.new(0, 0, 0, 250)
+speedSlider.Text = "Speed: " .. flightSpeed
+speedSlider.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
+speedSlider.Parent = menuFrame
+
+-- Function to toggle flight mode
+local function toggleFlight()
+    isFlying = not isFlying
+    if isFlying then
+        -- Enable flight
+        local bodyVelocity = Instance.new("BodyVelocity")
+        bodyVelocity.MaxForce = Vector3.new(100000, 100000, 100000)
+        bodyVelocity.Velocity = Vector3.new(0, flightSpeed, 0)
+        bodyVelocity.Parent = character.HumanoidRootPart
+
+        local bodyGyro = Instance.new("BodyGyro")
+        bodyGyro.MaxTorque = Vector3.new(400000, 400000, 400000)
+        bodyGyro.CFrame = character.HumanoidRootPart.CFrame
+        bodyGyro.Parent = character.HumanoidRootPart
     else
-        -- Make player invisible
-        character:FindFirstChild("Head").Transparency = 1
-        for _, part in pairs(character:GetChildren()) do
-            if part:IsA("BasePart") then
-                part.Transparency = 1
-            end
-        end
+        -- Disable flight
+        character.HumanoidRootPart:FindFirstChildOfClass("BodyVelocity"):Destroy()
+        character.HumanoidRootPart:FindFirstChildOfClass("BodyGyro"):Destroy()
     end
-    isInvisible = not isInvisible
 end
 
--- No-Clip (pass through walls)
+-- Function to toggle No-Clip mode
 local function toggleNoClip()
-    noClipActive = not noClipActive
-    if noClipActive then
-        humanoid.PlatformStand = true
-        -- Disable collision with the world
+    isNoClipping = not isNoClipping
+    if isNoClipping then
+        -- Make the player able to pass through parts (no collision)
         for _, part in pairs(character:GetChildren()) do
             if part:IsA("BasePart") then
                 part.CanCollide = false
             end
         end
     else
-        humanoid.PlatformStand = false
-        -- Re-enable collision with the world
+        -- Restore collision to all parts
         for _, part in pairs(character:GetChildren()) do
             if part:IsA("BasePart") then
                 part.CanCollide = true
@@ -91,52 +106,63 @@ local function toggleNoClip()
     end
 end
 
--- Speed Hack (change walk speed)
-local function setWalkSpeed(newSpeed)
-    humanoid.WalkSpeed = newSpeed
+-- Function to teleport to another player
+local function teleportToPlayer()
+    if targetPlayer then
+        character.HumanoidRootPart.CFrame = targetPlayer.Character.HumanoidRootPart.CFrame
+    else
+        print("No player selected to teleport to.")
+    end
 end
 
--- UI Elements to Control Features
-local screenGui = Instance.new("ScreenGui")
-screenGui.Parent = player:WaitForChild("PlayerGui")
+-- Function to update the speed from the slider
+local function updateSpeed()
+    local speedValue = tonumber(speedSlider.Text)
+    if speedValue then
+        flightSpeed = speedValue
+        speedSlider.Text = "Speed: " .. flightSpeed
+        walkingSpeed = speedValue
+    end
+end
 
--- Create Flight Button
-local flightButton = Instance.new("TextButton")
-flightButton.Size = UDim2.new(0, 200, 0, 50)
-flightButton.Position = UDim2.new(0, 0, 0, 0)
-flightButton.Text = "Toggle Flight"
-flightButton.Parent = screenGui
-flightButton.MouseButton1Click:Connect(function()
-    if flying then
-        stopFlying()
+-- Listen for the buttons to be clicked
+flightButton.MouseButton1Click:Connect(toggleFlight)
+noClipButton.MouseButton1Click:Connect(toggleNoClip)
+tpButton.MouseButton1Click:Connect(teleportToPlayer)
+speedSlider.FocusLost:Connect(updateSpeed)
+
+-- Function to handle flight controls (speed changes and position adjustments)
+game:GetService("RunService").Heartbeat:Connect(function()
+    if isFlying then
+        local humanoid = character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            humanoid.PlatformStand = true  -- Disable standing on the ground while flying
+        end
+        -- Apply flight speed and control the movement
+        character.HumanoidRootPart.Velocity = Vector3.new(0, flightSpeed, 0)
     else
-        startFlying()
+        local humanoid = character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            humanoid.PlatformStand = false  -- Re-enable standing on the ground
+            humanoid.WalkSpeed = walkingSpeed
+        end
     end
 end)
 
--- Create Invisibility Button
-local invisibilityButton = Instance.new("TextButton")
-invisibilityButton.Size = UDim2.new(0, 200, 0, 50)
-invisibilityButton.Position = UDim2.new(0, 0, 0, 60)
-invisibilityButton.Text = "Toggle Invisibility"
-invisibilityButton.Parent = screenGui
-invisibilityButton.MouseButton1Click:Connect(toggleInvisibility)
-
--- Create No-Clip Button
-local noClipButton = Instance.new("TextButton")
-noClipButton.Size = UDim2.new(0, 200, 0, 50)
-noClipButton.Position = UDim2.new(0, 0, 0, 120)
-noClipButton.Text = "Toggle No-Clip"
-noClipButton.Parent = screenGui
-noClipButton.MouseButton1Click:Connect(toggleNoClip)
-
--- Create Speed Control Button
-local speedButton = Instance.new("TextButton")
-speedButton.Size = UDim2.new(0, 200, 0, 50)
-speedButton.Position = UDim2.new(0, 0, 0, 180)
-speedButton.Text = "Set Speed"
-speedButton.Parent = screenGui
-speedButton.MouseButton1Click:Connect(function()
-    local newSpeed = tonumber(game:GetService("UserInputService"):GetStringForKeyCode(Enum.KeyCode.One)) or 50
-    setWalkSpeed(newSpeed)
+-- Function to handle teleportation to players (set targetPlayer when a player is selected)
+game.Players.PlayerAdded:Connect(function(plr)
+    if plr ~= player then
+        local playerButton = Instance.new("TextButton")
+        playerButton.Size = UDim2.new(0, 200, 0, 30)
+        playerButton.Text = "Teleport to " .. plr.Name
+        playerButton.BackgroundColor3 = Color3.fromRGB(0, 255, 255)
+        playerButton.Parent = menuFrame
+        playerButton.MouseButton1Click:Connect(function()
+            targetPlayer = plr
+            print("Target player set to: " .. plr.Name)
+        end)
+    end
 end)
+
+-- Initial speed setup for the player (as walking speed or flight speed)
+walkingSpeed = flightSpeed
