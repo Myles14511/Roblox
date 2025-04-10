@@ -24,7 +24,7 @@ local function createUI()
         -- Create a new TextLabel with the list of players to choose from
         local playerListLabel = Instance.new("TextLabel")
         playerListLabel.Size = UDim2.new(0, 200, 0, 200)
-        playerListLabel.Position = UDim2.new(0, 10, 0, 100)  -- Positioning on the left side
+        playerListLabel.Position = UDim2.new(0, 10, 0, 110)  -- Positioning on the left side
         playerListLabel.Text = playerList
         playerListLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
         playerListLabel.TextScaled = true
@@ -65,7 +65,6 @@ local function createUI()
             print("Please select a player first.")
         end
     end)
-
 end
 
 -- Function to create a meteor (only for your client)
