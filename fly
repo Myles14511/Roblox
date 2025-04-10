@@ -8,8 +8,8 @@ local flightSpeed = 50
 local isFlying = false
 local flightVelocity = Vector3.new(0, 0, 0)
 
--- Speed hack (walk speed multiplier)
-local speedMultiplier = 2
+-- Invisibility variable
+local isInvisible = false
 
 -- Create a UI with scrolling list and buttons for cheats
 local function createUI()
@@ -83,10 +83,21 @@ local function createUI()
         humanoid.WalkSpeed = speed
     end
 
-    -- Teleport to another player
-    local function teleportToPlayer(targetPlayer)
-        if targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            humanoidRootPart.CFrame = targetPlayer.Character.HumanoidRootPart.CFrame
+    -- Function to make the player invisible
+    local function setInvisibility(invisible)
+        isInvisible = invisible
+        for _, part in pairs(character:GetChildren()) do
+            if part:IsA("BasePart") then
+                -- Set transparency and disable collisions for all parts
+                part.Transparency = invisible and 1 or 0
+                part.CanCollide = not invisible
+            end
+        end
+
+        -- Make the humanoid invisible as well (for the health bar, etc.)
+        if character:FindFirstChild("Humanoid") then
+            local humanoid = character.Humanoid
+            humanoid.HealthDisplayType = invisible and Enum.HealthDisplayType.None or Enum.HealthDisplayType.Bar
         end
     end
 
@@ -139,15 +150,19 @@ local function createUI()
 
     createButton("Toggle Speed", function()
         if humanoid.WalkSpeed == 16 then  -- Default speed in Roblox
-            setSpeed(16 * speedMultiplier)  -- Set increased speed
+            setSpeed(16 * 2)  -- Set increased speed
         else
             setSpeed(16)  -- Reset to normal speed
         end
     end)
 
+    createButton("Toggle Invisibility", function()
+        setInvisibility(not isInvisible)  -- Toggle invisibility
+    end)
+
     createButton("Teleport to Random Player", function()
         local playerList = game.Players:GetPlayers()
-        local targetPlayer = playerList[math.random(1, #playerList)]  -- Randomly select a player (for now)
+        local targetPlayer = playerList[math.random(1, #playerList)]  -- Randomly select a player
         teleportToPlayer(targetPlayer)
     end)
 
