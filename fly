@@ -13,44 +13,36 @@ local function createUI()
     targetPlayerDropdown.Text = "Select Target Player"
     targetPlayerDropdown.Parent = screenGui
 
-    -- Function to create a dropdown of players to choose from
+    -- List of players as buttons
+    local playerButtons = {}
+
+    -- Function to create a list of buttons for each player
     local function updatePlayerList()
-        local playerList = ""
+        local yPosition = 110  -- Start positioning the buttons below the first button
+
         for _, p in pairs(game.Players:GetPlayers()) do
             if p ~= player then
-                playerList = playerList .. p.Name .. "\n"
+                -- Create a button for each player
+                local playerButton = Instance.new("TextButton")
+                playerButton.Size = UDim2.new(0, 200, 0, 30)
+                playerButton.Position = UDim2.new(0, 10, 0, yPosition)  -- Positioning on the left side
+                playerButton.Text = p.Name
+                playerButton.Parent = screenGui
+
+                -- When the button is clicked, set the target player
+                playerButton.MouseButton1Click:Connect(function()
+                    targetPlayer = p
+                    print("Selected target player: " .. p.Name)  -- Debugging output
+                end)
+
+                -- Increment the Y position for the next player button
+                yPosition = yPosition + 40
             end
         end
-        -- Create a new TextLabel with the list of players to choose from
-        local playerListLabel = Instance.new("TextLabel")
-        playerListLabel.Size = UDim2.new(0, 200, 0, 200)
-        playerListLabel.Position = UDim2.new(0, 10, 0, 110)  -- Positioning on the left side
-        playerListLabel.Text = playerList
-        playerListLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-        playerListLabel.TextScaled = true
-        playerListLabel.Parent = screenGui
-
-        return playerListLabel
     end
 
-    -- Create a list of other players
-    local playerListLabel = updatePlayerList()
-
-    -- Pick a player and trigger cheat effects on them
-    local targetPlayer = nil
-
-    -- Wait for the player to select a target player (from the list)
-    targetPlayerDropdown.MouseButton1Click:Connect(function()
-        -- This section might need to be revised to handle choosing the correct player
-        local playersList = game.Players:GetPlayers()
-        for _, p in pairs(playersList) do
-            if p ~= player then
-                targetPlayer = p
-                print("Target player selected: " .. targetPlayer.Name) -- Debugging output
-                break
-            end
-        end
-    end)
+    -- Update the player list
+    updatePlayerList()
 
     -- Button to make the selected player explode (and kill them)
     local explodeButton = Instance.new("TextButton")
